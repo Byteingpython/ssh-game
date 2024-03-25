@@ -67,23 +67,32 @@ public class ShellCommand implements Command {
         new Thread(new Runnable() {
             @Override
             public void run() {
+                try {
+                    out.write("Please enter sth: ".getBytes());
+                    out.flush();
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
                 while (true) {
 
-                    if (ioIn != null) {
-                        logger.info("Reading from ioinput stream");
-                        ByteArrayBuffer buffer = new ByteArrayBuffer(1024);
-                        ioIn.read(buffer);
-                        logger.info("Read from ioinput stream: " + new String(buffer.array()));
-                    } else if (in != null) {
-                        logger.info("Reading from input stream");
-                        try {
-                            logger.info("Read int:" + in.read());
-                        } catch (IOException e) {
-                            throw new RuntimeException(e);
+                    try {
+                        int read = in.read();
+                        logger.info("Received input: " + read);
+                        if (read == 127) {
+                            out.write("\b \b".getBytes());
+                            out.flush();
+                            continue;
                         }
-                    } else {
-                        logger.info("No input stream");
-                        break;
+                        out.write(read);
+                        out.flush();
+                        if (read == 3) {
+                            out.write("Goodbye\n".getBytes());
+                            out.flush();
+                            callback.onExit(0, "Goodbye");
+                            break;
+                        }
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
                     }
                 }
             }

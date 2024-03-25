@@ -8,6 +8,8 @@ public interface AuthProvider {
 
     Optional<Boolean> authenticate(String username, PublicKey publicKey);
 
+    boolean doesUserExist(String username);
+
     boolean isCreationPossible();
 
     void createUser(String username, String password);
