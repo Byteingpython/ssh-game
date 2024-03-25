@@ -1,4 +1,4 @@
-package de.byteingpython.sshGame.ssh;
+package de.byteingpython.sshGame.ssh.auth;
 
 import java.security.PublicKey;
 import java.util.Optional;

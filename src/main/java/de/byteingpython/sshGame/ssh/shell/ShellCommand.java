@@ -1,4 +1,4 @@
-package de.byteingpython.sshGame.ssh;
+package de.byteingpython.sshGame.ssh.shell;
 
 import de.byteingpython.sshGame.config.ConfigurationProvider;
 import org.apache.sshd.common.io.IoInputStream;

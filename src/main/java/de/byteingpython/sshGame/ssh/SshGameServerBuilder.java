@@ -1,6 +1,9 @@
 package de.byteingpython.sshGame.ssh;
 
 import de.byteingpython.sshGame.config.ConfigurationProvider;
+import de.byteingpython.sshGame.ssh.auth.AuthProvider;
+import de.byteingpython.sshGame.ssh.auth.PasswordAuthenticator;
+import de.byteingpython.sshGame.ssh.shell.ShellFactory;
 import org.apache.sshd.server.SshServer;
 import org.apache.sshd.server.keyprovider.SimpleGeneratorHostKeyProvider;
 

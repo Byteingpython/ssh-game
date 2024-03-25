@@ -1,5 +1,6 @@
-package de.byteingpython.sshGame.ssh;
+package de.byteingpython.sshGame.ssh.auth;
 
+import de.byteingpython.sshGame.ssh.auth.AuthProvider;
 import org.apache.sshd.server.auth.AsyncAuthException;
 import org.apache.sshd.server.auth.password.PasswordChangeRequiredException;
 import org.apache.sshd.server.session.ServerSession;

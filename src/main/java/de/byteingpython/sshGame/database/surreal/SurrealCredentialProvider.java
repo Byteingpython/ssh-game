@@ -3,7 +3,7 @@ package de.byteingpython.sshGame.database.surreal;
 import com.surrealdb.driver.SyncSurrealDriver;
 import com.surrealdb.driver.model.QueryResult;
 import de.byteingpython.sshGame.config.ConfigurationProvider;
-import de.byteingpython.sshGame.ssh.CredentialAuthProvider;
+import de.byteingpython.sshGame.ssh.auth.CredentialAuthProvider;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

@@ -1,4 +1,4 @@
-package de.byteingpython.sshGame.ssh;
+package de.byteingpython.sshGame.ssh.auth;
 
 import com.google.common.hash.HashFunction;
 import com.google.common.hash.Hashing;
