@@ -9,7 +9,7 @@ import javax.naming.ConfigurationException;
 public class ConfigSurrealDriver extends SyncSurrealDriver {
     public ConfigSurrealDriver(ConfigurationProvider config) throws ConfigurationException {
         super(createConnection(config));
-        if (config.getString("SURREALDB_USER").isPresent() && config.getString("SURREALDB_PASSWORD").isPresent()) {
+        if (config.getString("SURREALDB_PASSWORD").isPresent() && config.getString("SURREALDB_PASSWORD").isPresent()) {
             this.signIn(config.getString("SURREALDB_USER").get(), config.getString("SURREALDB_PASSWORD").get());
         }
         this.use(config.getString("SURREALDB_NAMESPACE").orElse("default"), config.getString("SURREALDB_NAMESPACE").orElse("default"));

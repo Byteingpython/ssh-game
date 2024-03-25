@@ -9,5 +9,5 @@ FROM eclipse-temurin:21-jdk-alpine
 ARG VERSION=1.0
 WORKDIR /app
 
-COPY --from=build /app/target/ssh-game-${VERSION}.jar /app/
-CMD ["java", "-jar", "ssh-game-${VERSION}.jar"]
+COPY --from=build /app/target/ssh-game-${VERSION}-jar-with-dependencies.jar /app/ssh-game.jar
+CMD ["java", "-jar", "ssh-game.jar"]
