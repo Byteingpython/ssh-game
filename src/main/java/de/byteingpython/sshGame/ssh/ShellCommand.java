@@ -1,14 +1,15 @@
 package de.byteingpython.sshGame.ssh;
 
-import de.byteingpython.sshGame.Main;
+import de.byteingpython.sshGame.config.ConfigurationProvider;
 import org.apache.sshd.common.io.IoInputStream;
 import org.apache.sshd.common.io.IoOutputStream;
 import org.apache.sshd.common.util.buffer.ByteArrayBuffer;
 import org.apache.sshd.server.Environment;
 import org.apache.sshd.server.ExitCallback;
 import org.apache.sshd.server.channel.ChannelSession;
-import org.apache.sshd.server.command.AsyncCommand;
 import org.apache.sshd.server.command.Command;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -16,6 +17,8 @@ import java.io.OutputStream;
 
 public class ShellCommand implements Command {
 
+    private final Logger logger = LoggerFactory.getLogger(this.getClass());
+    private final ConfigurationProvider configurationProvider;
     private InputStream in;
     private OutputStream out;
     private OutputStream err;
@@ -24,10 +27,8 @@ public class ShellCommand implements Command {
     private IoInputStream ioIn;
     private ExitCallback callback;
 
-    private final Main main;
-
-    public ShellCommand(Main main) {
-        this.main = main;
+    public ShellCommand(ConfigurationProvider configurationProvider) {
+        this.configurationProvider = configurationProvider;
     }
 
     @Override
@@ -47,45 +48,45 @@ public class ShellCommand implements Command {
 
     @Override
     public void setOutputStream(OutputStream out) {
-        main.getLogger().info("Setting output stream");
+        logger.info("Setting output stream");
         this.out = out;
     }
 
     @Override
     public void start(ChannelSession channel, Environment env) throws IOException {
-        main.getLogger().info("Starting shell");
-        if(ioOut != null){
-            main.getLogger().info("Writing to iooutput stream");
+        logger.info("Starting shell");
+        if (ioOut != null) {
+            logger.info("Writing to iooutput stream");
             ioOut.writeBuffer(new ByteArrayBuffer("Welcome to the game\n".getBytes()));
         }
-        if(out != null) {
-            main.getLogger().info("Writing to output stream");
+        if (out != null) {
+            logger.info("Writing to output stream");
             out.write("Welcome to the game\n".getBytes());
             out.flush();
         }
         new Thread(new Runnable() {
             @Override
             public void run() {
-                while(true){
+                while (true) {
 
                     if (ioIn != null) {
-                        main.getLogger().info("Reading from ioinput stream");
+                        logger.info("Reading from ioinput stream");
                         ByteArrayBuffer buffer = new ByteArrayBuffer(1024);
                         ioIn.read(buffer);
-                        main.getLogger().info("Read from ioinput stream: " + new String(buffer.array()));
+                        logger.info("Read from ioinput stream: " + new String(buffer.array()));
                     } else if (in != null) {
-                        main.getLogger().info("Reading from input stream");
+                        logger.info("Reading from input stream");
                         try {
-                            main.getLogger().info("Read int:"+ in.read());
+                            logger.info("Read int:" + in.read());
                         } catch (IOException e) {
                             throw new RuntimeException(e);
                         }
                     } else {
-                        main.getLogger().info("No input stream");
+                        logger.info("No input stream");
                         break;
                     }
                 }
-                }
+            }
 
         }).start();
     }

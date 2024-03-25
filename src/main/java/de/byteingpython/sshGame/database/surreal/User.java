@@ -1,16 +1,19 @@
-package de.byteingpython.sshGame.types;
+package de.byteingpython.sshGame.database.surreal;
+
+import java.security.PublicKey;
 
 public class User {
+    String passwordHash;
+    String name;
+    String publicKey;
+
     public User(String name, String passwordHash) {
         this.name = name;
         this.passwordHash = passwordHash;
     }
 
-    public String getName() {
-        return name;
-    }
-
-    public void setName(String name) {
+    //TODO: Implement this!
+    public User(String name, PublicKey publicKey) {
         this.name = name;
     }
 
@@ -22,16 +25,16 @@ public class User {
         this.passwordHash = passwordHash;
     }
 
-    String name;
-    String passwordHash;
+    public String getName() {
+        return name;
+    }
 
+    //TODO: Implement this!
     public String getPublicKey() {
-        return publicKey;
+        return null;
     }
 
-    public void setPublicKey(String publicKey) {
-        this.publicKey = publicKey;
-    }
+    public void setPublicKey(PublicKey publicKey) {
 
-    String publicKey;
+    }
 }
