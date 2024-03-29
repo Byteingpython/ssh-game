@@ -2,26 +2,29 @@ package de.byteingpython.sshGame.ssh.auth;
 
 import com.google.common.hash.HashFunction;
 import com.google.common.hash.Hashing;
+import org.bouncycastle.crypto.params.Argon2Parameters;
 import org.slf4j.Logger;
+import org.springframework.security.crypto.argon2.Argon2PasswordEncoder;
 
+import java.security.PublicKey;
 import java.util.Optional;
 
 public abstract class CredentialAuthProvider implements CredentialProvider, AuthProvider {
     private final Logger logger = org.slf4j.LoggerFactory.getLogger(this.getClass());
-    private final HashFunction hashing = Hashing.sha256();
+    private final Argon2PasswordEncoder argon2PasswordEncoder = new Argon2PasswordEncoder(32, 64, 1, 19*1024, 2);
 
     @Override
     public Optional<Boolean> authenticate(String username, String password) {
         Optional<String> hashedPassword = getHashedPassword(username);
         if (hashedPassword.isPresent()) {
-            return Optional.of(getHashedPassword(username).get().equals(hashing.hashString(password, java.nio.charset.StandardCharsets.UTF_8).toString()));
+            return Optional.of(argon2PasswordEncoder.matches(password, hashedPassword.get()));
         }
         return Optional.empty();
     }
 
     //TODO: Implement this method
     @Override
-    public Optional<Boolean> authenticate(String username, java.security.PublicKey publicKey) {
+    public Optional<Boolean> authenticate(String username, PublicKey publicKey) {
         return Optional.empty();
     }
 
@@ -32,6 +35,6 @@ public abstract class CredentialAuthProvider implements CredentialProvider, Auth
 
     @Override
     public void createUser(String username, String password) {
-        createUserWithHashedPassword(username, hashing.hashString(password, java.nio.charset.StandardCharsets.UTF_8).toString());
+        createUserWithHashedPassword(username, argon2PasswordEncoder.encode(password));
     }
 }
