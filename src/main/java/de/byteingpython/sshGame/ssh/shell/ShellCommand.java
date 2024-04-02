@@ -76,21 +76,14 @@ public class ShellCommand implements Command {
                 while (true) {
 
                     try {
-                        int read = in.read();
-                        logger.info("Received input: " + read);
-                        if (read == 127) {
-                            out.write("\b \b".getBytes());
-                            out.flush();
-                            continue;
-                        }
-                        out.write(read);
+                        out.write("\033[H\033[2J".getBytes());
                         out.flush();
-                        if (read == 3) {
-                            out.write("Goodbye\n".getBytes());
-                            out.flush();
-                            callback.onExit(0, "Goodbye");
-                            break;
-                        }
+                        LobbyScreen lobby=new LobbyScreen();
+                        lobby.setInputStream(in);
+                        lobby.setOutputStream(out);
+                        lobby.setExitCallback(callback);
+                        lobby.setErrorStream(err);
+                        lobby.start(channel, env);
                     } catch (IOException e) {
                         throw new RuntimeException(e);
                     }
