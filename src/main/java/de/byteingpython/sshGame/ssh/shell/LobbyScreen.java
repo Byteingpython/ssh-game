@@ -26,7 +26,7 @@ public class LobbyScreen implements Command {
     private IoOutputStream ioErr;
     private IoInputStream ioIn;
     private ExitCallback callback;
-    private final String PlayerName = "theoj";
+    private final String PlayerName = "guenther";
 
     @Override
     public void setExitCallback(ExitCallback callback) {
@@ -63,7 +63,7 @@ public class LobbyScreen implements Command {
             out.flush();
         }
         try {
-            String playerNameRow = centerText(PlayerName, 50) + "║\n\r";
+            String playerNameRow = centerText(PlayerName, 25) + "║\n\r";
 
             out.write(("╔════════════════════════════════════════════╗\n\r" +
                     "║ Settings ^s                     ^f Friends ║\n\r" +
@@ -138,13 +138,15 @@ public class LobbyScreen implements Command {
     }
 
     public static String centerText(String text, int totalWidth) {
-        //int spacesNeeded = totalWidth - text.length();
-        //int leftSpaces = spacesNeeded / 2;
-        //int rightSpaces = spacesNeeded - leftSpaces;
+        int spacesNeeded = totalWidth - text.length();
+        int leftSpaces = spacesNeeded / 2;
 
-        int allSpaces = 21;
-        int rightSpaces = allSpaces-text.length();
+        if (spacesNeeded % 2 != 0) {
+            leftSpaces++;
+        }
 
-        return " ".repeat(11-text.length()) + text + " ".repeat(rightSpaces);
+        int rightSpaces = spacesNeeded - leftSpaces;
+
+        return " ".repeat(5) + text + " ".repeat(rightSpaces+leftSpaces-5);
     }
 }
