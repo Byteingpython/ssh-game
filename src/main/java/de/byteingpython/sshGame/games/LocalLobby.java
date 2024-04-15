@@ -12,6 +12,7 @@ public class LocalLobby implements Lobby {
 
     @Override
     public void addPlayer(Player player) {
+        player.setLobby(this);
         players.add(player);
     }
 
@@ -48,5 +49,18 @@ public class LocalLobby implements Lobby {
     @Override
     public void setPlaying(boolean playing) {
         this.playing = playing;
+    }
+
+    @Override
+    public Runnable getEndCallback() {
+       return new Runnable() {
+           @Override
+           public void run() {
+                playing = false;
+                for (Player player : players) {
+                    player.getEndCallback().run();
+                }
+           }
+       };
     }
 }

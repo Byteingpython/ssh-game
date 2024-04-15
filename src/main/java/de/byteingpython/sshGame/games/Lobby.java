@@ -19,4 +19,6 @@ public interface Lobby {
     boolean isPlaying();
 
     void setPlaying(boolean playing);
+
+    Runnable getEndCallback();
 }

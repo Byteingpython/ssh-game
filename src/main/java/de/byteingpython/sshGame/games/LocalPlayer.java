@@ -8,13 +8,15 @@ public class LocalPlayer implements Player {
     private final OutputStream outputStream;
     private final OutputStream errorStream;
     private final InputStream inputStream;
+    private final Runnable endCallback;
     private Lobby lobby;
 
-    public LocalPlayer(String name, OutputStream outputStream, OutputStream errorStream, InputStream inputStream) {
+    public LocalPlayer(String name, OutputStream outputStream, OutputStream errorStream, InputStream inputStream, Runnable endCallback) {
         this.name = name;
         this.outputStream = outputStream;
         this.errorStream = errorStream;
         this.inputStream = inputStream;
+        this.endCallback = endCallback;
     }
 
     @Override
@@ -30,6 +32,11 @@ public class LocalPlayer implements Player {
     @Override
     public void setLobby(Lobby lobby) {
         this.lobby = lobby;
+    }
+
+    @Override
+    public Runnable getEndCallback() {
+        return endCallback;
     }
 
     @Override

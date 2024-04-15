@@ -6,4 +6,6 @@ public interface Player extends StreamHolder {
     Lobby getLobby();
 
     void setLobby(Lobby lobby);
+
+    Runnable getEndCallback();
 }
