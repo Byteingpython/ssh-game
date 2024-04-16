@@ -108,8 +108,11 @@ public class LobbyScreen implements Command {
                 if (read == 17) {
                     try {
                         matchmaker.matchmake(player.getLobby());
+                        showMessage("Matchmaking started", 3000);
+                        break;
                     }catch (IllegalArgumentException e) {
                         showMessage(e.getMessage(), 3000);
+                        throw e;
                     }
                 }
                 if (read == 13) {
@@ -132,6 +135,7 @@ public class LobbyScreen implements Command {
                 break;
             }
         }
+
     }
 
     /**

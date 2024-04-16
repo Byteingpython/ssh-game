@@ -6,12 +6,10 @@ import de.byteingpython.sshGame.games.Player;
 import de.byteingpython.sshGame.utils.RandomBoolean;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
 public class TicTacToe implements Game {
-
-    private Runnable endCallback;
-
     @Override
     public String getName() {
         return "Tic Tac Toe";
@@ -32,9 +30,15 @@ public class TicTacToe implements Game {
         return 2;
     }
 
-    @Override
-    public int getMinLobbySize() {
-        return 2;
+    private static void endGame(List<Lobby> lobbies) {
+        for (Lobby lobby : lobbies) {
+            lobby.setPlaying(false);
+        }
+        for (Lobby lobby : lobbies) {
+            new Thread(() -> {
+                lobby.getEndCallback().run();
+            }).start();
+        }
     }
 
     @Override
@@ -43,15 +47,33 @@ public class TicTacToe implements Game {
     }
 
     @Override
-    public int getMaxLobbyCount() {
+    public int getMinLobbySize() {
         return 1;
     }
 
     @Override
+    public int getMinTotalPlayers() {
+        return 2;
+    }
+
+    @Override
+    public int getMaxTotalPlayers() {
+        return 2;
+    }
+
+    @Override
+    public int getMaxLobbyCount() {
+        return 2;
+    }
+
+    @Override
     public void startGame(List<Lobby> lobbies) {
-        lobbies.get(0).setPlaying(true);
+        List<Player> players = new ArrayList<>();
+        for (Lobby lobby : lobbies) {
+            players.addAll(lobby.getPlayers());
+            lobby.setPlaying(true);
+        }
         new Thread(() -> {
-            List<Player> players = lobbies.get(0).getPlayers();
             Board board;
             if (RandomBoolean.getRandomBoolean()) {
                 board = new Board(players.get(0), players.get(1));
@@ -72,20 +94,15 @@ public class TicTacToe implements Game {
                 try {
                     int input = board.getCurrentPlayer().getInputStream().read();
                     if (input == 3) {
-                        endCallback.run();
+                        endGame(lobbies);
                         return;
                     }
-                    if (input < 31 || input > 39) {
+                    if (input < 49 || input > 57) {
                         continue;
                     }
-                    board.setField(board.getCurrentPlayer(), input - 30);
-                    if (board.checkWin(input - 30)) {
-                        for (Player player : players) {
-                            player.getOutputStream().write("You won!\n".getBytes());
-                            player.getOutputStream().flush();
-                        }
-                        endCallback.run();
-                        return;
+                    board.setField(board.getCurrentPlayer(), input - 49);
+                    if (board.checkWin(input - 49)) {
+                        endGame(lobbies);
                     }
                 } catch (IOException e) {
                     throw new RuntimeException(e);
@@ -94,8 +111,4 @@ public class TicTacToe implements Game {
         }).start();
     }
 
-    @Override
-    public void setEndCallback(Runnable callback) {
-        this.endCallback = callback;
-    }
 }

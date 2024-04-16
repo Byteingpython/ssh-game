@@ -1,9 +1,9 @@
 package de.byteingpython.sshGame.ssh.shell;
 
 import de.byteingpython.sshGame.config.ConfigurationProvider;
-import de.byteingpython.sshGame.games.LocalGameMananger;
-import de.byteingpython.sshGame.games.LocalLobbyMananger;
-import de.byteingpython.sshGame.games.tictactoe.TicTacToe;
+import de.byteingpython.sshGame.games.GameManager;
+import de.byteingpython.sshGame.games.LobbyManager;
+import de.byteingpython.sshGame.games.matchmaking.Matchmaker;
 import org.apache.sshd.common.io.IoInputStream;
 import org.apache.sshd.common.io.IoOutputStream;
 import org.apache.sshd.common.util.buffer.ByteArrayBuffer;
@@ -29,9 +29,15 @@ public class ShellCommand implements Command {
     private IoOutputStream ioErr;
     private IoInputStream ioIn;
     private ExitCallback callback;
+    private final LobbyManager lobbyManager;
+    private final GameManager gameManager;
+    private final Matchmaker matchmaker;
 
-    public ShellCommand(ConfigurationProvider configurationProvider) {
+    public ShellCommand(ConfigurationProvider configurationProvider, LobbyManager lobbyManager, GameManager gameManager, Matchmaker matchmaker) {
         this.configurationProvider = configurationProvider;
+        this.lobbyManager = lobbyManager;
+        this.gameManager = gameManager;
+        this.matchmaker = matchmaker;
     }
 
     @Override
@@ -76,12 +82,10 @@ public class ShellCommand implements Command {
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
-                while (true) {
-
                     try {
                         out.write("\033[H\033[2J".getBytes());
                         out.flush();
-                        LobbyScreen lobby=new LobbyScreen(new LocalLobbyMananger(), new LocalGameMananger(new TicTacToe()), );
+                        LobbyScreen lobby = new LobbyScreen(lobbyManager, gameManager, matchmaker);
                         lobby.setInputStream(in);
                         lobby.setOutputStream(out);
                         lobby.setExitCallback(callback);
@@ -90,7 +94,6 @@ public class ShellCommand implements Command {
                     } catch (IOException e) {
                         throw new RuntimeException(e);
                     }
-                }
             }
 
         }).start();

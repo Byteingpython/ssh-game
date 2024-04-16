@@ -17,4 +17,6 @@ public class ColorUtils {
     public static String LIGHT_RED = "\033[1;31";
     public static String LIGHT_PURPLE = "\033[1;35";
     public static String NO_COLOR = "\033[0m";
+
+    public static String BOLD = "\033[1m";
 }

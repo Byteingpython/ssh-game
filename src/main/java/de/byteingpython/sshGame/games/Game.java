@@ -15,9 +15,11 @@ public interface Game {
 
     int getMinLobbyCount();
 
+    int getMinTotalPlayers();
+
+    int getMaxTotalPlayers();
+
     int getMaxLobbyCount();
 
     void startGame(List<Lobby> lobbies);
-
-    void setEndCallback(Runnable callback);
 }

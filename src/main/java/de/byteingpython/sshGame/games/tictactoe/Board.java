@@ -79,7 +79,7 @@ public class Board {
                     sb.append("O");
                 }
                 sb.append("  ");
-                if (i < 2) {
+                if (j < 2) {
                     sb.append("│");
                 } else {
                     sb.append("\n\r");

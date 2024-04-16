@@ -1,16 +1,12 @@
 package de.byteingpython.sshGame.games;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.UUID;
+import java.util.*;
 
-public class LocalLobbyMananger implements LobbyManager{
+public class LocalLobbyManager implements LobbyManager {
 
     private Map<UUID, Lobby> lobbies;
 
-    public LocalLobbyMananger() {
+    public LocalLobbyManager() {
         this.lobbies = new HashMap<>();
     }
     @Override
