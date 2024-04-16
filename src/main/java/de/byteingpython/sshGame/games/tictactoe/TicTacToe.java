@@ -3,6 +3,7 @@ package de.byteingpython.sshGame.games.tictactoe;
 import de.byteingpython.sshGame.games.Game;
 import de.byteingpython.sshGame.games.Lobby;
 import de.byteingpython.sshGame.games.Player;
+import de.byteingpython.sshGame.utils.EscapeCodeUtils;
 import de.byteingpython.sshGame.utils.RandomBoolean;
 
 import java.io.IOException;
@@ -35,9 +36,7 @@ public class TicTacToe implements Game {
             lobby.setPlaying(false);
         }
         for (Lobby lobby : lobbies) {
-            new Thread(() -> {
-                lobby.getEndCallback().run();
-            }).start();
+            new Thread(() -> lobby.getEndCallback().run()).start();
         }
     }
 
@@ -83,8 +82,7 @@ public class TicTacToe implements Game {
             while (true) {
                 for (Player player : players) {
                     try {
-                        player.getOutputStream().write("\033[H\033[2J".getBytes());
-                        player.getOutputStream().flush();
+                        player.getOutputStream().write(EscapeCodeUtils.CLEAR_SCREEN.getBytes());
                         player.getOutputStream().write(board.render(player).getBytes());
                         player.getOutputStream().flush();
                     } catch (IOException e) {
@@ -100,9 +98,15 @@ public class TicTacToe implements Game {
                     if (input < 49 || input > 57) {
                         continue;
                     }
+                    if (board.isSet(input - 49)) {
+                        continue;
+                    }
                     board.setField(board.getCurrentPlayer(), input - 49);
                     if (board.checkWin(input - 49)) {
                         endGame(lobbies);
+                    }
+                    if(board.getCurrentPlayer().getInputStream().available()>0){
+                        board.getCurrentPlayer().getInputStream().readNBytes(board.getCurrentPlayer().getInputStream().available());
                     }
                 } catch (IOException e) {
                     throw new RuntimeException(e);
