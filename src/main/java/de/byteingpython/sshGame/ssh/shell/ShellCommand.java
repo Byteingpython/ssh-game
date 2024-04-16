@@ -1,6 +1,9 @@
 package de.byteingpython.sshGame.ssh.shell;
 
 import de.byteingpython.sshGame.config.ConfigurationProvider;
+import de.byteingpython.sshGame.games.LocalGameMananger;
+import de.byteingpython.sshGame.games.LocalLobbyMananger;
+import de.byteingpython.sshGame.games.tictactoe.TicTacToe;
 import org.apache.sshd.common.io.IoInputStream;
 import org.apache.sshd.common.io.IoOutputStream;
 import org.apache.sshd.common.util.buffer.ByteArrayBuffer;
@@ -78,7 +81,7 @@ public class ShellCommand implements Command {
                     try {
                         out.write("\033[H\033[2J".getBytes());
                         out.flush();
-                        LobbyScreen lobby=new LobbyScreen();
+                        LobbyScreen lobby=new LobbyScreen(new LocalLobbyMananger(), new LocalGameMananger(new TicTacToe()), );
                         lobby.setInputStream(in);
                         lobby.setOutputStream(out);
                         lobby.setExitCallback(callback);
