@@ -1,5 +1,7 @@
 package de.byteingpython.sshGame.games;
 
+import de.byteingpython.sshGame.event.InputEventHandler;
+
 public interface Player extends StreamHolder {
     String getName();
 
@@ -8,4 +10,6 @@ public interface Player extends StreamHolder {
     void setLobby(Lobby lobby);
 
     Runnable getEndCallback();
+
+    InputEventHandler getEventHandler();
 }

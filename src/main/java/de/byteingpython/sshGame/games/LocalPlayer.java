@@ -1,5 +1,8 @@
 package de.byteingpython.sshGame.games;
 
+import de.byteingpython.sshGame.event.InputEventHandler;
+import de.byteingpython.sshGame.event.StreamReaderInputHandler;
+
 import java.io.InputStream;
 import java.io.OutputStream;
 
@@ -9,6 +12,7 @@ public class LocalPlayer implements Player {
     private final OutputStream errorStream;
     private final InputStream inputStream;
     private final Runnable endCallback;
+    private final InputEventHandler inputEventHandler;
     private Lobby lobby;
 
     public LocalPlayer(String name, OutputStream outputStream, OutputStream errorStream, InputStream inputStream, Runnable endCallback) {
@@ -17,6 +21,7 @@ public class LocalPlayer implements Player {
         this.errorStream = errorStream;
         this.inputStream = inputStream;
         this.endCallback = endCallback;
+        this.inputEventHandler = new StreamReaderInputHandler(inputStream);
     }
 
     @Override
@@ -37,6 +42,11 @@ public class LocalPlayer implements Player {
     @Override
     public Runnable getEndCallback() {
         return endCallback;
+    }
+
+    @Override
+    public InputEventHandler getEventHandler() {
+        return inputEventHandler;
     }
 
     @Override

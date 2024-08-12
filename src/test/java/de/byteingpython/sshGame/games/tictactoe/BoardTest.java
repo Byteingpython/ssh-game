@@ -29,6 +29,11 @@ class BoardTest {
             }
 
             @Override
+            public Runnable getEndCallback() {
+                return null;
+            }
+
+            @Override
             public OutputStream getOutputStream() {
                 return null;
             }
@@ -57,6 +62,11 @@ class BoardTest {
             @Override
             public void setLobby(Lobby lobby) {
 
+            }
+
+            @Override
+            public Runnable getEndCallback() {
+                return null;
             }
 
             @Override
