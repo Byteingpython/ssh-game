@@ -1,23 +1,20 @@
 package de.byteingpython.sshGame.event;
 
-import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.List;
 
 public class StreamReaderInputHandler implements InputEventHandler {
 
-    private Thread thread;
-    private List<InputListener> listeners = new ArrayList<>();
+    private final ArrayList<InputListener> listeners = new ArrayList<>();
 
     public StreamReaderInputHandler(InputStream inputStream) {
-        this.thread = new Thread(() -> {
+        Thread thread = new Thread(() -> {
             try {
                 while (true) {
                     int input = inputStream.read();
-                    for (InputListener listener : listeners) {
+                    for (InputListener listener : (ArrayList<InputListener>)listeners.clone()) {
                         listener.onInput(input);
                     }
                 }
@@ -25,7 +22,7 @@ public class StreamReaderInputHandler implements InputEventHandler {
                    throw new RuntimeException(e);
             }
         });
-        this.thread.start();
+        thread.start();
     }
 
     @Override

@@ -21,6 +21,10 @@ public class Board {
         return currentPlayer;
     }
 
+    public Player getOtherPlayer() {
+        return otherPlayer;
+    }
+
     public void setField(Player player, int field) {
         if (field < 0 || field > 8) {
             throw new IllegalArgumentException("Field must be between 0 and 8");

@@ -40,7 +40,6 @@ public class LobbyScreen implements Command, InputListener {
         this.lobbyManager = lobbyManager;
         this.gameManager = gameManager;
         this.matchmaker = matchmaker;
-        this.player = player;
     }
 
     @Override
@@ -67,7 +66,7 @@ public class LobbyScreen implements Command, InputListener {
 
     @Override
     public void start(ChannelSession channel, Environment env) throws IOException {
-        this.player = new LocalPlayer(channel.getSession().getUsername(), out, err, in, this::loopUntilGameStarts);
+        this.player = new LocalPlayer(channel.getSession().getUsername(), out, err, in, this::render);
         Lobby lobby = lobbyManager.createLobby();
         lobby.addPlayer(player);
 
@@ -87,10 +86,6 @@ public class LobbyScreen implements Command, InputListener {
         logger.trace("Starting lobby");
         player.getEventHandler().registerListener(this);
         render();
-    }
-
-    private void loopUntilGameStarts() {
-
     }
 
     /**
@@ -137,7 +132,7 @@ public class LobbyScreen implements Command, InputListener {
     }
 
     @Override
-    public void destroy(ChannelSession channel) throws Exception {
+    public void destroy(ChannelSession channel) {
         callback.onExit(0, "Goodbye");
     }
 
