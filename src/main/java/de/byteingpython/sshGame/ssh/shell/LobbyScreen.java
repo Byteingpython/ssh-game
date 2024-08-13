@@ -30,16 +30,19 @@ public class LobbyScreen implements Command, InputListener {
     private ExitCallback callback;
     private final LobbyManager lobbyManager;
     private final GameManager gameManager;
+    private final PlayerManager playerManager;
 
     private final Matchmaker matchmaker;
 
     private String message = "Welcome to the game";
 
     private Player player;
-    public LobbyScreen(LobbyManager lobbyManager, GameManager gameManager, Matchmaker matchmaker) {
+
+    public LobbyScreen(LobbyManager lobbyManager, GameManager gameManager, Matchmaker matchmaker, PlayerManager playerManager) {
         this.lobbyManager = lobbyManager;
         this.gameManager = gameManager;
         this.matchmaker = matchmaker;
+        this.playerManager = playerManager;
     }
 
     @Override
@@ -67,6 +70,14 @@ public class LobbyScreen implements Command, InputListener {
     @Override
     public void start(ChannelSession channel, Environment env) throws IOException {
         this.player = new LocalPlayer(channel.getSession().getUsername(), out, err, in, this::render);
+        try {
+            playerManager.registerPlayer(player);
+        } catch (IllegalArgumentException e) {
+            player.getOutputStream().write(("Unable to register Player. " + e.getMessage() + "\n\r").getBytes(StandardCharsets.UTF_8));
+            player.getOutputStream().flush();
+            callback.onExit(0);
+            return;
+        }
         Lobby lobby = lobbyManager.createLobby();
         lobby.addPlayer(player);
 
