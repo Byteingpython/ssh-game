@@ -21,6 +21,9 @@ public class LocalMatchmaker implements Matchmaker {
         if (lobby.getPlayers().size() > game.getMaxLobbySize()) {
             throw new IllegalArgumentException("Lobby is too big for this Game");
         }
+        if (isMatchmaking(lobby, game)) {
+            throw new IllegalArgumentException("Lobby is already matchmaking");
+        }
         if (lobby.getPlayers().size() < game.getMinLobbySize()) {
             addLobbyForGame(game, lobby);
             return;
@@ -50,6 +53,10 @@ public class LocalMatchmaker implements Matchmaker {
         lobby.getGame().startGame(selectedLobbies);
     }
 
+    private boolean isMatchmaking(Lobby lobby, Game game){
+        return getLobbiesForGame(game).contains(lobby);
+    }
+
     private List<Lobby> getLobbiesForGame(Game game) {
         return lobbies.computeIfAbsent(game.getId(), k -> new ArrayList<>());
     }
@@ -68,6 +75,9 @@ public class LocalMatchmaker implements Matchmaker {
 
     private void addLobbyForGame(Game game, Lobby lobby) {
         List<Lobby> lobbiesForGame = lobbies.get(game.getId());
+        if(lobbiesForGame.contains(lobby)){
+            throw new IllegalArgumentException("Lobby is already in matchmaking");
+        }
         lobbiesForGame.add(lobby);
         lobbies.put(game.getId(), lobbiesForGame);
     }

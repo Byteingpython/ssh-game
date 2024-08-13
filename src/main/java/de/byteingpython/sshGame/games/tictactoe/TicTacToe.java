@@ -1,5 +1,6 @@
 package de.byteingpython.sshGame.games.tictactoe;
 
+import de.byteingpython.sshGame.event.InputListener;
 import de.byteingpython.sshGame.games.Game;
 import de.byteingpython.sshGame.games.Lobby;
 import de.byteingpython.sshGame.games.Player;
@@ -10,7 +11,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class TicTacToe implements Game {
+public class TicTacToe implements Game, InputListener {
     @Override
     public String getName() {
         return "Tic Tac Toe";
@@ -115,4 +116,8 @@ public class TicTacToe implements Game {
         }).start();
     }
 
+    @Override
+    public void onInput(int input) {
+
+    }
 }
