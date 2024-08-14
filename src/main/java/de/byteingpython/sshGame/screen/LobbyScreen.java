@@ -190,9 +190,12 @@ public class LobbyScreen implements Command, InputListener {
                 }
 
                 if (input == 3) {
+                    out.write(EscapeCodeUtils.SWITCH_TO_MAIN_SCREEN.getBytes(StandardCharsets.UTF_8));
+                    out.flush();
                     out.write("\nGoodbye\n".getBytes());
                     out.flush();
                     callback.onExit(-1, "Goodbye");
+                    playerManager.unregisterPlayer(player);
                 }
 
             } catch (IOException e) {
