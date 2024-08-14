@@ -173,8 +173,10 @@ public class LobbyScreen implements Command, InputListener {
                 if (input == 17) {
                     try {
                         matchmaker.matchmake(player.getLobby());
-                        showMessage("Matchmaking started", 2999);
-                    }catch (IllegalArgumentException e) {
+                        if (!player.getLobby().isPlaying()) {
+                            showMessage("Matchmaking started", 2999);
+                        }
+                    } catch (IllegalArgumentException e) {
                         showMessage(e.getMessage(), 2999);
                         throw e;
                     }

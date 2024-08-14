@@ -11,14 +11,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class TicTacToe implements Game, InputListener {
-
-
-    private List<Lobby> lobbies = new ArrayList<>();
-
-    private Board board;
-
-    private final List<Player> players = new ArrayList<>();
+public class TicTacToe implements Game {
 
     @Override
     public String getName() {
@@ -76,52 +69,16 @@ public class TicTacToe implements Game, InputListener {
 
     @Override
     public void startGame(List<Lobby> lobbies) {
-        this.lobbies = lobbies;
+        List<Player> players = new ArrayList<>();
         for (Lobby lobby : lobbies) {
             players.addAll(lobby.getPlayers());
             lobby.setPlaying(true);
         }
-            if (RandomBoolean.getRandomBoolean()) {
-                board = new Board(players.get(0), players.get(1));
-            } else {
-                board = new Board(players.get(1), players.get(0));
-            }
-            board.getCurrentPlayer().getEventHandler().registerListener(this);
-            renderAll();
-    }
-
-
-    private void renderAll() {
-        for (Player player : players) {
-            try {
-                player.getOutputStream().write(EscapeCodeUtils.CLEAR_SCREEN.getBytes());
-                player.getOutputStream().write(board.render(player).getBytes());
-                player.getOutputStream().flush();
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
+        Board board;
+        if (RandomBoolean.getRandomBoolean()) {
+            board = new Board(players.get(0), players.get(1));
+        } else {
+            board = new Board(players.get(1), players.get(0));
         }
-    }
-
-    @Override
-    public void onInput(int input) {
-        if (input == 3) {
-            endGame(lobbies);
-            return;
-        }
-        if (input < 49 || input > 57) {
-            return;
-        }
-        if (board.isSet(input - 49)) {
-            return;
-        }
-        board.setField(board.getCurrentPlayer(), input - 49);
-        if (board.checkWin(input - 49)) {
-            endGame(lobbies);
-            return;
-        }
-        board.getCurrentPlayer().getEventHandler().registerListener(this);
-        board.getOtherPlayer().getEventHandler().unregisterListener(this);
-        renderAll();
     }
 }
