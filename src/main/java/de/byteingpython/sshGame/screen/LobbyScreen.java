@@ -1,8 +1,14 @@
-package de.byteingpython.sshGame.ssh.shell;
+package de.byteingpython.sshGame.screen;
 
 
+import de.byteingpython.sshGame.event.InputListener;
 import de.byteingpython.sshGame.games.*;
-import de.byteingpython.sshGame.games.matchmaking.Matchmaker;
+import de.byteingpython.sshGame.matchmaking.Matchmaker;
+import de.byteingpython.sshGame.lobby.Lobby;
+import de.byteingpython.sshGame.lobby.LobbyManager;
+import de.byteingpython.sshGame.player.LocalPlayer;
+import de.byteingpython.sshGame.player.Player;
+import de.byteingpython.sshGame.player.PlayerManager;
 import de.byteingpython.sshGame.utils.EscapeCodeUtils;
 import de.byteingpython.sshGame.utils.StringUtils;
 import org.apache.sshd.server.Environment;
@@ -20,7 +26,7 @@ import java.util.List;
 import java.util.Timer;
 import java.util.TimerTask;
 
-public class LobbyScreen implements Command {
+public class LobbyScreen implements Command, InputListener {
 
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
     private InputStream in;
@@ -29,17 +35,19 @@ public class LobbyScreen implements Command {
     private ExitCallback callback;
     private final LobbyManager lobbyManager;
     private final GameManager gameManager;
+    private final PlayerManager playerManager;
 
     private final Matchmaker matchmaker;
 
     private String message = "Welcome to the game";
 
     private Player player;
-    public LobbyScreen(LobbyManager lobbyManager, GameManager gameManager, Matchmaker matchmaker) {
+
+    public LobbyScreen(LobbyManager lobbyManager, GameManager gameManager, Matchmaker matchmaker, PlayerManager playerManager) {
         this.lobbyManager = lobbyManager;
         this.gameManager = gameManager;
         this.matchmaker = matchmaker;
-        this.player = player;
+        this.playerManager = playerManager;
     }
 
     @Override
@@ -66,7 +74,15 @@ public class LobbyScreen implements Command {
 
     @Override
     public void start(ChannelSession channel, Environment env) throws IOException {
-        this.player = new LocalPlayer(channel.getSession().getUsername(), out, err, in, this::loopUntilGameStarts);
+        this.player = new LocalPlayer(channel.getSession().getUsername(), out, err, in, this::render);
+        try {
+            playerManager.registerPlayer(player);
+        } catch (IllegalArgumentException e) {
+            player.getOutputStream().write(("Unable to register Player. " + e.getMessage() + "\n\r").getBytes(StandardCharsets.UTF_8));
+            player.getOutputStream().flush();
+            callback.onExit(0);
+            return;
+        }
         Lobby lobby = lobbyManager.createLobby();
         lobby.addPlayer(player);
 
@@ -84,58 +100,8 @@ public class LobbyScreen implements Command {
             return;
         }
         logger.trace("Starting lobby");
-        loopUntilGameStarts();
-    }
-
-    private void loopUntilGameStarts() {
-        while (!player.getLobby().isPlaying()) {
-            try {
-                render();
-                int read = in.read();
-                logger.info("Received input: " + read);
-                if (read == 19) {
-                    out.write("-> Settings".getBytes());
-                    out.flush();
-                }
-                if (read == 6) {
-                    out.write("-> Friends".getBytes());
-                    out.flush();
-                }
-                if (read == 1) {
-                    out.write("-> Add".getBytes());
-                    out.flush();
-                }
-                if (read == 17) {
-                    try {
-                        matchmaker.matchmake(player.getLobby());
-                        showMessage("Matchmaking started", 3000);
-                        break;
-                    }catch (IllegalArgumentException e) {
-                        showMessage(e.getMessage(), 3000);
-                        throw e;
-                    }
-                }
-                if (read == 13) {
-                    SelectScreen<Game> selectScreen = new SelectScreen<>();
-                    gameManager.getGames().forEach(game -> selectScreen.addOption(game.getName(), game));
-                    selectScreen.selectOption(player).ifPresent(game -> {
-                        player.getLobby().setGame(game);
-                    });
-                }
-
-                if (read == 3) {
-                    out.write("\nGoodbye\n".getBytes());
-                    out.flush();
-                    callback.onExit(0, "Goodbye");
-                    break;
-                }
-
-            } catch (IOException e) {
-                logger.error(e.toString());
-                break;
-            }
-        }
-
+        player.getEventHandler().registerListener(this);
+        render();
     }
 
     /**
@@ -182,8 +148,57 @@ public class LobbyScreen implements Command {
     }
 
     @Override
-    public void destroy(ChannelSession channel) throws Exception {
+    public void destroy(ChannelSession channel) {
         callback.onExit(0, "Goodbye");
     }
 
+    @Override
+    public void onInput(int input) {
+        if (!player.getLobby().isPlaying()) {
+            try {
+
+                logger.info("Received input: " + input);
+                if (input == 19) {
+                    out.write("-> Settings".getBytes());
+                    out.flush();
+                }
+                if (input == 6) {
+                    out.write("-> Friends".getBytes());
+                    out.flush();
+                }
+                if (input == 1) {
+                    out.write("-> Add".getBytes());
+                    out.flush();
+                }
+                if (input == 17) {
+                    try {
+                        matchmaker.matchmake(player.getLobby());
+                        showMessage("Matchmaking started", 2999);
+                    }catch (IllegalArgumentException e) {
+                        showMessage(e.getMessage(), 2999);
+                        throw e;
+                    }
+                }
+                if (input == 12) {
+                    SelectScreen<Game> selectScreen = new SelectScreen<>();
+                    gameManager.getGames().forEach(game -> selectScreen.addOption(game.getName(), game));
+                    selectScreen.selectOption(player).ifPresent(game -> {
+                        player.getLobby().setGame(game);
+                    });
+                }
+
+                if (input == 3) {
+                    out.write("\nGoodbye\n".getBytes());
+                    out.flush();
+                    callback.onExit(-1, "Goodbye");
+                }
+
+            } catch (IOException e) {
+                logger.error(e.toString());
+            }
+        }
+        if(!player.getLobby().isPlaying()) {
+            render();
+        }
+    }
 }

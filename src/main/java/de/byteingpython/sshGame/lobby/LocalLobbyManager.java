@@ -1,4 +1,4 @@
-package de.byteingpython.sshGame.games;
+package de.byteingpython.sshGame.lobby;
 
 import java.util.*;
 

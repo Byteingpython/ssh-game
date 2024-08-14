@@ -1,6 +1,6 @@
 package de.byteingpython.sshGame.games.tictactoe;
 
-import de.byteingpython.sshGame.games.Player;
+import de.byteingpython.sshGame.player.Player;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -19,6 +19,10 @@ public class Board {
 
     public Player getCurrentPlayer() {
         return currentPlayer;
+    }
+
+    public Player getOtherPlayer() {
+        return otherPlayer;
     }
 
     public void setField(Player player, int field) {

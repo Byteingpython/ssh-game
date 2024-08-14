@@ -2,8 +2,10 @@ package de.byteingpython.sshGame.ssh.shell;
 
 import de.byteingpython.sshGame.config.ConfigurationProvider;
 import de.byteingpython.sshGame.games.GameManager;
-import de.byteingpython.sshGame.games.LobbyManager;
-import de.byteingpython.sshGame.games.matchmaking.Matchmaker;
+import de.byteingpython.sshGame.lobby.LobbyManager;
+import de.byteingpython.sshGame.player.PlayerManager;
+import de.byteingpython.sshGame.matchmaking.Matchmaker;
+import de.byteingpython.sshGame.screen.LobbyScreen;
 import org.apache.sshd.common.io.IoInputStream;
 import org.apache.sshd.common.io.IoOutputStream;
 import org.apache.sshd.common.util.buffer.ByteArrayBuffer;
@@ -32,12 +34,14 @@ public class ShellCommand implements Command {
     private final LobbyManager lobbyManager;
     private final GameManager gameManager;
     private final Matchmaker matchmaker;
+    private final PlayerManager playerManager;
 
-    public ShellCommand(ConfigurationProvider configurationProvider, LobbyManager lobbyManager, GameManager gameManager, Matchmaker matchmaker) {
+    public ShellCommand(ConfigurationProvider configurationProvider, LobbyManager lobbyManager, PlayerManager playerManager, GameManager gameManager, Matchmaker matchmaker) {
         this.configurationProvider = configurationProvider;
         this.lobbyManager = lobbyManager;
         this.gameManager = gameManager;
         this.matchmaker = matchmaker;
+        this.playerManager = playerManager;
     }
 
     @Override
@@ -85,7 +89,7 @@ public class ShellCommand implements Command {
                     try {
                         out.write("\033[H\033[2J".getBytes());
                         out.flush();
-                        LobbyScreen lobby = new LobbyScreen(lobbyManager, gameManager, matchmaker);
+                        LobbyScreen lobby = new LobbyScreen(lobbyManager, gameManager, matchmaker, playerManager);
                         lobby.setInputStream(in);
                         lobby.setOutputStream(out);
                         lobby.setExitCallback(callback);
@@ -100,7 +104,7 @@ public class ShellCommand implements Command {
     }
 
     @Override
-    public void destroy(ChannelSession channel) throws Exception {
+    public void destroy(ChannelSession channel) {
         callback.onExit(0, "Goodbye");
     }
 /*

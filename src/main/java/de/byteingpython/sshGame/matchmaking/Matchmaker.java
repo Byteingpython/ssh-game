@@ -1,7 +1,6 @@
-package de.byteingpython.sshGame.games.matchmaking;
+package de.byteingpython.sshGame.matchmaking;
 
-import de.byteingpython.sshGame.games.Lobby;
-import org.checkerframework.common.returnsreceiver.qual.This;
+import de.byteingpython.sshGame.lobby.Lobby;
 
 
 /**

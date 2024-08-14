@@ -1,8 +1,9 @@
 package de.byteingpython.sshGame.games.tictactoe;
 
+import de.byteingpython.sshGame.event.InputListener;
 import de.byteingpython.sshGame.games.Game;
-import de.byteingpython.sshGame.games.Lobby;
-import de.byteingpython.sshGame.games.Player;
+import de.byteingpython.sshGame.lobby.Lobby;
+import de.byteingpython.sshGame.player.Player;
 import de.byteingpython.sshGame.utils.EscapeCodeUtils;
 import de.byteingpython.sshGame.utils.RandomBoolean;
 
@@ -10,7 +11,15 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class TicTacToe implements Game {
+public class TicTacToe implements Game, InputListener {
+
+
+    private List<Lobby> lobbies = new ArrayList<>();
+
+    private Board board;
+
+    private final List<Player> players = new ArrayList<>();
+
     @Override
     public String getName() {
         return "Tic Tac Toe";
@@ -67,52 +76,52 @@ public class TicTacToe implements Game {
 
     @Override
     public void startGame(List<Lobby> lobbies) {
-        List<Player> players = new ArrayList<>();
+        this.lobbies = lobbies;
         for (Lobby lobby : lobbies) {
             players.addAll(lobby.getPlayers());
             lobby.setPlaying(true);
         }
-        new Thread(() -> {
-            Board board;
             if (RandomBoolean.getRandomBoolean()) {
                 board = new Board(players.get(0), players.get(1));
             } else {
                 board = new Board(players.get(1), players.get(0));
             }
-            while (true) {
-                for (Player player : players) {
-                    try {
-                        player.getOutputStream().write(EscapeCodeUtils.CLEAR_SCREEN.getBytes());
-                        player.getOutputStream().write(board.render(player).getBytes());
-                        player.getOutputStream().flush();
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                }
-                try {
-                    int input = board.getCurrentPlayer().getInputStream().read();
-                    if (input == 3) {
-                        endGame(lobbies);
-                        return;
-                    }
-                    if (input < 49 || input > 57) {
-                        continue;
-                    }
-                    if (board.isSet(input - 49)) {
-                        continue;
-                    }
-                    board.setField(board.getCurrentPlayer(), input - 49);
-                    if (board.checkWin(input - 49)) {
-                        endGame(lobbies);
-                    }
-                    if(board.getCurrentPlayer().getInputStream().available()>0){
-                        board.getCurrentPlayer().getInputStream().readNBytes(board.getCurrentPlayer().getInputStream().available());
-                    }
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
-            }
-        }).start();
+            board.getCurrentPlayer().getEventHandler().registerListener(this);
+            renderAll();
     }
 
+
+    private void renderAll() {
+        for (Player player : players) {
+            try {
+                player.getOutputStream().write(EscapeCodeUtils.CLEAR_SCREEN.getBytes());
+                player.getOutputStream().write(board.render(player).getBytes());
+                player.getOutputStream().flush();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
+    @Override
+    public void onInput(int input) {
+        if (input == 3) {
+            endGame(lobbies);
+            return;
+        }
+        if (input < 49 || input > 57) {
+            return;
+        }
+        if (board.isSet(input - 49)) {
+            return;
+        }
+        board.setField(board.getCurrentPlayer(), input - 49);
+        if (board.checkWin(input - 49)) {
+            endGame(lobbies);
+            return;
+        }
+        board.getCurrentPlayer().getEventHandler().registerListener(this);
+        board.getOtherPlayer().getEventHandler().unregisterListener(this);
+        renderAll();
+    }
 }
