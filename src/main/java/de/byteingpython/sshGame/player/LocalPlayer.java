@@ -1,7 +1,8 @@
-package de.byteingpython.sshGame.games;
+package de.byteingpython.sshGame.player;
 
 import de.byteingpython.sshGame.event.InputEventHandler;
 import de.byteingpython.sshGame.event.StreamReaderInputHandler;
+import de.byteingpython.sshGame.lobby.Lobby;
 
 import java.io.InputStream;
 import java.io.OutputStream;

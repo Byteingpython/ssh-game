@@ -2,8 +2,8 @@ package de.byteingpython.sshGame.games.tictactoe;
 
 import de.byteingpython.sshGame.event.InputListener;
 import de.byteingpython.sshGame.games.Game;
-import de.byteingpython.sshGame.games.Lobby;
-import de.byteingpython.sshGame.games.Player;
+import de.byteingpython.sshGame.lobby.Lobby;
+import de.byteingpython.sshGame.player.Player;
 import de.byteingpython.sshGame.utils.EscapeCodeUtils;
 import de.byteingpython.sshGame.utils.RandomBoolean;
 

@@ -1,4 +1,7 @@
-package de.byteingpython.sshGame.games;
+package de.byteingpython.sshGame.lobby;
+
+import de.byteingpython.sshGame.games.Game;
+import de.byteingpython.sshGame.player.Player;
 
 import java.util.ArrayList;
 import java.util.List;

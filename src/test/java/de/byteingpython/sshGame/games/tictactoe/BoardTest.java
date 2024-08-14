@@ -1,7 +1,7 @@
 package de.byteingpython.sshGame.games.tictactoe;
 
-import de.byteingpython.sshGame.games.Lobby;
-import de.byteingpython.sshGame.games.Player;
+import de.byteingpython.sshGame.lobby.Lobby;
+import de.byteingpython.sshGame.player.Player;
 
 import java.io.InputStream;
 import java.io.OutputStream;

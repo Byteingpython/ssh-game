@@ -1,7 +1,7 @@
-package de.byteingpython.sshGame.games.matchmaking;
+package de.byteingpython.sshGame.matchmaking;
 
 import de.byteingpython.sshGame.games.Game;
-import de.byteingpython.sshGame.games.Lobby;
+import de.byteingpython.sshGame.lobby.Lobby;
 
 import java.util.ArrayList;
 import java.util.HashMap;

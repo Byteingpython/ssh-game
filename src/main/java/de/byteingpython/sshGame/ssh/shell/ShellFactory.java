@@ -2,13 +2,15 @@ package de.byteingpython.sshGame.ssh.shell;
 
 import de.byteingpython.sshGame.config.ConfigurationProvider;
 import de.byteingpython.sshGame.games.*;
-import de.byteingpython.sshGame.games.matchmaking.LocalMatchmaker;
-import de.byteingpython.sshGame.games.matchmaking.Matchmaker;
+import de.byteingpython.sshGame.matchmaking.LocalMatchmaker;
+import de.byteingpython.sshGame.matchmaking.Matchmaker;
 import de.byteingpython.sshGame.games.tictactoe.TicTacToe;
+import de.byteingpython.sshGame.lobby.LobbyManager;
+import de.byteingpython.sshGame.lobby.LocalLobbyManager;
+import de.byteingpython.sshGame.player.LocalPlayerManager;
+import de.byteingpython.sshGame.player.PlayerManager;
 import org.apache.sshd.server.channel.ChannelSession;
 import org.apache.sshd.server.command.Command;
-
-import java.io.IOException;
 
 public class ShellFactory implements org.apache.sshd.server.shell.ShellFactory {
 

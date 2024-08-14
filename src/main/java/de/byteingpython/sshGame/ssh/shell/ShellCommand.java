@@ -2,9 +2,10 @@ package de.byteingpython.sshGame.ssh.shell;
 
 import de.byteingpython.sshGame.config.ConfigurationProvider;
 import de.byteingpython.sshGame.games.GameManager;
-import de.byteingpython.sshGame.games.LobbyManager;
-import de.byteingpython.sshGame.games.PlayerManager;
-import de.byteingpython.sshGame.games.matchmaking.Matchmaker;
+import de.byteingpython.sshGame.lobby.LobbyManager;
+import de.byteingpython.sshGame.player.PlayerManager;
+import de.byteingpython.sshGame.matchmaking.Matchmaker;
+import de.byteingpython.sshGame.screen.LobbyScreen;
 import org.apache.sshd.common.io.IoInputStream;
 import org.apache.sshd.common.io.IoOutputStream;
 import org.apache.sshd.common.util.buffer.ByteArrayBuffer;

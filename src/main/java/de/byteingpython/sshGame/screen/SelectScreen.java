@@ -1,6 +1,6 @@
-package de.byteingpython.sshGame.ssh.shell;
+package de.byteingpython.sshGame.screen;
 
-import de.byteingpython.sshGame.games.Player;
+import de.byteingpython.sshGame.player.Player;
 import de.byteingpython.sshGame.utils.EscapeCodeUtils;
 
 import java.io.IOException;

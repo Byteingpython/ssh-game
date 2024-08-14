@@ -1,5 +1,7 @@
 package de.byteingpython.sshGame.games;
 
+import de.byteingpython.sshGame.lobby.Lobby;
+
 import java.util.List;
 
 public interface Game {

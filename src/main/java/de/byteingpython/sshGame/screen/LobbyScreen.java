@@ -1,9 +1,14 @@
-package de.byteingpython.sshGame.ssh.shell;
+package de.byteingpython.sshGame.screen;
 
 
 import de.byteingpython.sshGame.event.InputListener;
 import de.byteingpython.sshGame.games.*;
-import de.byteingpython.sshGame.games.matchmaking.Matchmaker;
+import de.byteingpython.sshGame.matchmaking.Matchmaker;
+import de.byteingpython.sshGame.lobby.Lobby;
+import de.byteingpython.sshGame.lobby.LobbyManager;
+import de.byteingpython.sshGame.player.LocalPlayer;
+import de.byteingpython.sshGame.player.Player;
+import de.byteingpython.sshGame.player.PlayerManager;
 import de.byteingpython.sshGame.utils.EscapeCodeUtils;
 import de.byteingpython.sshGame.utils.StringUtils;
 import org.apache.sshd.server.Environment;

@@ -1,4 +1,4 @@
-package de.byteingpython.sshGame.games;
+package de.byteingpython.sshGame.player;
 
 import java.util.HashMap;
 import java.util.Map;
