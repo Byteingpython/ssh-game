@@ -1,11 +1,16 @@
 package de.byteingpython.sshGame.games.tictactoe;
 
+import de.byteingpython.sshGame.event.InputListener;
+import de.byteingpython.sshGame.lobby.Lobby;
 import de.byteingpython.sshGame.player.Player;
+import de.byteingpython.sshGame.utils.EscapeCodeUtils;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.util.HashMap;
 import java.util.Map;
 
-public class Board {
+public class Board implements InputListener {
     private final int[] board = new int[9];
     private final Map<Player, Sign> players = new HashMap<>();
     private Player currentPlayer;
@@ -15,6 +20,8 @@ public class Board {
         players.put(player2, Sign.O);
         currentPlayer = player1;
         otherPlayer = player2;
+        currentPlayer.getEventHandler().registerListener(this);
+        renderAll();
     }
 
     public Player getCurrentPlayer() {
@@ -65,7 +72,7 @@ public class Board {
     }
 
 
-    public String render(Player player) {
+    public void render(Player player) {
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < 3; i++) {
             sb.append("     │     │     \n\r");
@@ -93,6 +100,46 @@ public class Board {
                 sb.append("─────┼─────┼─────\n\r");
             }
         }
-        return sb.toString();
+        try {
+            player.getOutputStream().write(EscapeCodeUtils.CLEAR_SCREEN.getBytes());
+            player.getOutputStream().write(sb.toString().getBytes(StandardCharsets.UTF_8));
+            player.getOutputStream().flush();
+        } catch (IOException ignored) {}
+    }
+
+    private void renderAll() {
+        render(currentPlayer);
+        render(otherPlayer);
+    }
+
+    @Override
+    public void onInput(int input) {
+        if (input == 3) {
+            endGame();
+            return;
+        }
+        if (input < 49 || input > 57) {
+            return;
+        }
+        if (this.isSet(input - 49)) {
+            return;
+        }
+        this.setField(this.getCurrentPlayer(), input - 49);
+        if (this.checkWin(input - 49)) {
+            endGame();
+            return;
+        }
+        this.getCurrentPlayer().getEventHandler().registerListener(this);
+        this.getOtherPlayer().getEventHandler().unregisterListener(this);
+        renderAll();
+    }
+
+    private void endGame() {
+        getCurrentPlayer().getEventHandler().unregisterListener(this);
+        Lobby lobby = getCurrentPlayer().getLobby();
+        lobby.getEndCallback().run();
+        if (getOtherPlayer().getLobby() != lobby) {
+            getOtherPlayer().getLobby().getEndCallback().run();
+        }
     }
 }
