@@ -67,6 +67,15 @@ public class Board implements InputListener {
         return row + col == 2 && board[2] == sourceValue && board[4] == sourceValue && board[6] == sourceValue;
     }
 
+    private boolean isDraw() {
+        for(int value:board){
+            if(value == 0) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     public boolean isSet(int field) {
         return board[field] != 0;
     }
@@ -125,7 +134,7 @@ public class Board implements InputListener {
             return;
         }
         this.setField(this.getCurrentPlayer(), input - 49);
-        if (this.checkWin(input - 49)) {
+        if (this.checkWin(input - 49)||this.isDraw()) {
             endGame();
             return;
         }
