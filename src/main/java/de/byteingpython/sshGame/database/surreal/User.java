@@ -41,7 +41,7 @@ public class User {
         friends.remove(user);
     }
 
-    public List<User> getFriends(User user) {
+    public List<User> getFriends() {
         return friends;
     }
 
