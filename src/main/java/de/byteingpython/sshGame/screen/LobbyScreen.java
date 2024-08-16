@@ -23,6 +23,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Optional;
 import java.util.Timer;
 import java.util.TimerTask;
 
@@ -36,6 +37,7 @@ public class LobbyScreen implements Command, InputListener {
     private final LobbyManager lobbyManager;
     private final GameManager gameManager;
     private final PlayerManager playerManager;
+    private Optional<TextInputScreen> inviteTextInput = Optional.empty();
 
     private final Matchmaker matchmaker;
 
@@ -123,24 +125,94 @@ public class LobbyScreen implements Command, InputListener {
         render();
     }
 
+    /**
+     * Reregister the InputListener
+     */
+    private void reregisterListener() {
+        player.getEventHandler().registerListener(this);
+    }
+
+    private String renderPlayerCarousel() {
+        StringBuilder firstLine = new StringBuilder();
+        StringBuilder secondLine = new StringBuilder();
+        StringBuilder thirdLine = new StringBuilder();
+        StringBuilder fourthLine = new StringBuilder();
+
+        if(player.getLobby().getPlayers().size()<player.getLobby().getGame().getMaxLobbySize()) {
+            firstLine.append("  ╭───╮  ");
+            secondLine.append("^j│ + │  ");
+            thirdLine.append("  ╰───╯  ");
+            fourthLine.append("  Join   ");
+        }
+        for(Player iterPlayer: player.getLobby().getPlayers()){
+           firstLine.append("  ╭───╮  ");
+           secondLine.append("  │ ");
+           secondLine.append(iterPlayer.getName().substring(0, 1));
+           secondLine.append(" │  ");
+           thirdLine.append("  ╰───╯  ");
+           fourthLine.append(StringUtils.centerText(iterPlayer.getName(), 10));
+        }
+
+
+        StringBuilder fullCarousel = new StringBuilder();
+        fullCarousel.append("║");
+        fullCarousel.append(StringUtils.centerText(firstLine.toString(), 44));
+        fullCarousel.append("║");
+        fullCarousel.append("\n\r");
+        fullCarousel.append("║");
+        fullCarousel.append(StringUtils.centerText(secondLine.toString(),44));
+        fullCarousel.append("║");
+        fullCarousel.append("\n\r");
+        fullCarousel.append("║");
+        fullCarousel.append(StringUtils.centerText(thirdLine.toString(), 44));
+        fullCarousel.append("║");
+        fullCarousel.append("\n\r");
+        fullCarousel.append("║");
+        fullCarousel.append(StringUtils.centerText(fourthLine.toString(), 44));
+        fullCarousel.append("║");
+        fullCarousel.append("\n\r");
+
+        return fullCarousel.toString();
+    }
+
     private void render() {
         try {
             player.getOutputStream().write(EscapeCodeUtils.CLEAR_SCREEN.getBytes(StandardCharsets.UTF_8));
             player.getOutputStream().flush();
 
             String playerNameRow = StringUtils.centerText(player.getName(), 25) + "║\n\r";
+            StringBuilder sb = new StringBuilder();
 
-            player.getOutputStream().write(("╔════════════════════════════════════════════╗\n\r" +
-                    "║ Settings ^s                     ^f Friends ║\n\r" +
-                    "║               ╭───╮    ╭───╮               ║\n\r" +
-                    "║             ^a│ + │    │ @ │               ║\n\r" +
-                    "║               ╰───╯    ╰───╯               ║\n\r" +
-                    "║                Add" + playerNameRow+
-                    "║"+ StringUtils.centerText(message, 44)+"║\n\r" +
-                    "║ ┏╺╺╺╺╺┓                      ┏╺╺╺╺╺╺╺╺╺╺╺┓ ║\n\r" +
-                    "║ ╏queue╏^q                  ^m╏"+player.getLobby().getGame().getName() + "╏ ║\n\r" +
-                    "║ ┗╺╺╺╺╺┛                      ┗╺╺╺╺╺╺╺╺╺╺╺┛ ║\n\r" +
-                    "╚════════════════════════════════════════════╝").getBytes(StandardCharsets.UTF_8));
+            sb.append("╔════════════════════════════════════════════╗\n\r");
+            sb.append("║ Settings ^s                     ^f Friends ║\n\r");
+            sb.append("║");
+            sb.append(StringUtils.centerText(player.getLobby().getPlayers().size()+"/"+player.getLobby().getGame().getMaxLobbySize(), 44));
+            sb.append("║\n\r");
+            sb.append(renderPlayerCarousel());
+            sb.append("║");
+            sb.append(StringUtils.centerText(message, 44));
+            sb.append("║\n\r");
+            sb.append("║ ┏╺╺╺╺╺┓                      ┏╺╺╺╺╺╺╺╺╺╺╺┓ ║\n\r");
+            sb.append("║ ╏queue╏^q                  ^m╏");
+            sb.append(player.getLobby().getGame().getName());
+            sb.append("╏ ║\n\r");
+            sb.append("║ ┗╺╺╺╺╺┛                      ┗╺╺╺╺╺╺╺╺╺╺╺┛ ║\n\r");
+            sb.append("╚════════════════════════════════════════════╝");
+
+            player.getOutputStream().write(sb.toString().getBytes(StandardCharsets.UTF_8));
+
+            //player.getOutputStream().write(("╔════════════════════════════════════════════╗\n\r" +
+            //        "║ Settings ^s                     ^f Friends ║\n\r" +
+            //        "║"+ StringUtils.centerText(player.getLobby().getPlayers().size()+"/"+player.getLobby().getGame().getMaxLobbySize(), 44) + "║\n\r" +
+            //        "║               ╭───╮    ╭───╮               ║\n\r" +
+            //        "║             ^a│ + │    │ "+player.getName().substring(0, 1) + " │               ║\n\r" +
+            //        "║               ╰───╯    ╰───╯               ║\n\r" +
+            //        "║                Add" + playerNameRow+
+            //        "║"+ StringUtils.centerText(message, 44)+"║\n\r" +
+            //        "║ ┏╺╺╺╺╺┓                      ┏╺╺╺╺╺╺╺╺╺╺╺┓ ║\n\r" +
+            //        "║ ╏queue╏^q                  ^m╏"+player.getLobby().getGame().getName() + "╏ ║\n\r" +
+            //        "║ ┗╺╺╺╺╺┛                      ┗╺╺╺╺╺╺╺╺╺╺╺┛ ║\n\r" +
+            //        "╚════════════════════════════════════════════╝").getBytes(StandardCharsets.UTF_8));
             player.getOutputStream().flush();
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -156,7 +228,6 @@ public class LobbyScreen implements Command, InputListener {
     public void onInput(int input) {
         if (!player.getLobby().isPlaying()) {
             try {
-
                 logger.info("Received input: " + input);
                 if (input == 19) {
                     out.write("-> Settings".getBytes());
@@ -164,10 +235,6 @@ public class LobbyScreen implements Command, InputListener {
                 }
                 if (input == 6) {
                     out.write("-> Friends".getBytes());
-                    out.flush();
-                }
-                if (input == 1) {
-                    out.write("-> Add".getBytes());
                     out.flush();
                 }
                 if (input == 17) {
@@ -181,12 +248,34 @@ public class LobbyScreen implements Command, InputListener {
                         throw e;
                     }
                 }
-                if (input == 12) {
+                if (input == 13) {
                     SelectScreen<Game> selectScreen = new SelectScreen<>();
                     gameManager.getGames().forEach(game -> selectScreen.addOption(game.getName(), game));
                     selectScreen.selectOption(player).ifPresent(game -> {
                         player.getLobby().setGame(game);
                     });
+                }
+
+                if(input == 10) {
+                    player.getEventHandler().unregisterListener(this);
+                    inviteTextInput = Optional.of(new TextInputScreen(new Runnable() {
+                        @Override
+                        public void run() {
+                            reregisterListener();
+                            LoggerFactory.getLogger(this.getClass()).info(inviteTextInput.get().getInput());
+                            Optional<Player> invitedPlayer = playerManager.getPlayer(inviteTextInput.get().getInput());
+                            inviteTextInput = Optional.empty();
+                            if(invitedPlayer.isEmpty()) {
+                                showMessage("This player does not exist", 3000);
+                                return;
+                            }
+                            player.getLobby().removePlayer(player);
+                            invitedPlayer.get().getLobby().addPlayer(player);
+                            render();
+                        }
+                    }, player, "Input Player name"));
+                    LoggerFactory.getLogger(this.getClass()).info("Started Text Input");
+                    return;
                 }
 
                 if (input == 3) {

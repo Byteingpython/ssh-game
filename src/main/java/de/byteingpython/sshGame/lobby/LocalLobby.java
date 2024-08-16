@@ -15,6 +15,9 @@ public class LocalLobby implements Lobby {
 
     @Override
     public void addPlayer(Player player) {
+        if(players.size()>=game.getMaxLobbySize()){
+            throw new IllegalStateException("L");
+        }
         player.setLobby(this);
         players.add(player);
     }
