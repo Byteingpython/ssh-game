@@ -1,15 +1,19 @@
 package de.byteingpython.sshGame.database.surreal;
 
 import java.security.PublicKey;
+import java.util.ArrayList;
+import java.util.List;
 
 public class User {
     String passwordHash;
     String name;
     String publicKey;
+    List<User> friends;
 
     public User(String name, String passwordHash) {
         this.name = name;
         this.passwordHash = passwordHash;
+        friends = new ArrayList<>();
     }
 
     //TODO: Implement this!
@@ -27,6 +31,18 @@ public class User {
 
     public String getName() {
         return name;
+    }
+
+    public void addFriend(User user) {
+        friends.add(user);
+    }
+
+    public void removeFriend(User user) {
+        friends.remove(user);
+    }
+
+    public List<User> getFriends(User user) {
+        return friends;
     }
 
     //TODO: Implement this!
