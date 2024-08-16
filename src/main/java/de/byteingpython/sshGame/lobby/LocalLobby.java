@@ -73,14 +73,11 @@ public class LocalLobby implements Lobby {
 
     @Override
     public Runnable getEndCallback() {
-       return new Runnable() {
-           @Override
-           public void run() {
-                playing = false;
-                for (Player player : players) {
-                    player.getEndCallback().run();
-                }
-           }
+       return () -> {
+            playing = false;
+            for (Player player : players) {
+                player.getEndCallback().run();
+            }
        };
     }
 }

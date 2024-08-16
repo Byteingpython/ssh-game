@@ -147,32 +147,31 @@ public class LobbyScreen implements Command, InputListener {
         for(Player iterPlayer: player.getLobby().getPlayers()){
            firstLine.append("  ╭───╮  ");
            secondLine.append("  │ ");
-           secondLine.append(iterPlayer.getName().substring(0, 1));
+           secondLine.append(iterPlayer.getName().charAt(0));
            secondLine.append(" │  ");
            thirdLine.append("  ╰───╯  ");
            fourthLine.append(StringUtils.centerText(iterPlayer.getName(), 10));
         }
 
 
-        StringBuilder fullCarousel = new StringBuilder();
-        fullCarousel.append("║");
-        fullCarousel.append(StringUtils.centerText(firstLine.toString(), 44));
-        fullCarousel.append("║");
-        fullCarousel.append("\n\r");
-        fullCarousel.append("║");
-        fullCarousel.append(StringUtils.centerText(secondLine.toString(),44));
-        fullCarousel.append("║");
-        fullCarousel.append("\n\r");
-        fullCarousel.append("║");
-        fullCarousel.append(StringUtils.centerText(thirdLine.toString(), 44));
-        fullCarousel.append("║");
-        fullCarousel.append("\n\r");
-        fullCarousel.append("║");
-        fullCarousel.append(StringUtils.centerText(fourthLine.toString(), 44));
-        fullCarousel.append("║");
-        fullCarousel.append("\n\r");
+        String fullCarousel = "║" +
+                StringUtils.centerText(firstLine.toString(), 44) +
+                "║" +
+                "\n\r" +
+                "║" +
+                StringUtils.centerText(secondLine.toString(), 44) +
+                "║" +
+                "\n\r" +
+                "║" +
+                StringUtils.centerText(thirdLine.toString(), 44) +
+                "║" +
+                "\n\r" +
+                "║" +
+                StringUtils.centerText(fourthLine.toString(), 44) +
+                "║" +
+                "\n\r";
 
-        return fullCarousel.toString();
+        return fullCarousel;
     }
 
     private void render() {
@@ -180,26 +179,24 @@ public class LobbyScreen implements Command, InputListener {
             player.getOutputStream().write(EscapeCodeUtils.CLEAR_SCREEN.getBytes(StandardCharsets.UTF_8));
             player.getOutputStream().flush();
 
-            String playerNameRow = StringUtils.centerText(player.getName(), 25) + "║\n\r";
-            StringBuilder sb = new StringBuilder();
 
-            sb.append("╔════════════════════════════════════════════╗\n\r");
-            sb.append("║ Settings ^s                     ^f Friends ║\n\r");
-            sb.append("║");
-            sb.append(StringUtils.centerText(player.getLobby().getPlayers().size()+"/"+player.getLobby().getGame().getMaxLobbySize(), 44));
-            sb.append("║\n\r");
-            sb.append(renderPlayerCarousel());
-            sb.append("║");
-            sb.append(StringUtils.centerText(message, 44));
-            sb.append("║\n\r");
-            sb.append("║ ┏╺╺╺╺╺┓                      ┏╺╺╺╺╺╺╺╺╺╺╺┓ ║\n\r");
-            sb.append("║ ╏queue╏^q                  ^m╏");
-            sb.append(player.getLobby().getGame().getName());
-            sb.append("╏ ║\n\r");
-            sb.append("║ ┗╺╺╺╺╺┛                      ┗╺╺╺╺╺╺╺╺╺╺╺┛ ║\n\r");
-            sb.append("╚════════════════════════════════════════════╝");
+            String sb = "╔════════════════════════════════════════════╗\n\r" +
+                    "║ Settings ^s                     ^f Friends ║\n\r" +
+                    "║" +
+                    StringUtils.centerText(player.getLobby().getPlayers().size() + "/" + player.getLobby().getGame().getMaxLobbySize(), 44) +
+                    "║\n\r" +
+                    renderPlayerCarousel() +
+                    "║" +
+                    StringUtils.centerText(message, 44) +
+                    "║\n\r" +
+                    "║ ┏╺╺╺╺╺┓                      ┏╺╺╺╺╺╺╺╺╺╺╺┓ ║\n\r" +
+                    "║ ╏queue╏^q                  ^m╏" +
+                    player.getLobby().getGame().getName() +
+                    "╏ ║\n\r" +
+                    "║ ┗╺╺╺╺╺┛                      ┗╺╺╺╺╺╺╺╺╺╺╺┛ ║\n\r" +
+                    "╚════════════════════════════════════════════╝";
 
-            player.getOutputStream().write(sb.toString().getBytes(StandardCharsets.UTF_8));
+            player.getOutputStream().write(sb.getBytes(StandardCharsets.UTF_8));
 
             //player.getOutputStream().write(("╔════════════════════════════════════════════╗\n\r" +
             //        "║ Settings ^s                     ^f Friends ║\n\r" +
