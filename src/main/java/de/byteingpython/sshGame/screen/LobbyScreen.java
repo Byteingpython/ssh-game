@@ -154,7 +154,7 @@ public class LobbyScreen implements Command, InputListener {
         }
 
 
-        String fullCarousel = "║" +
+        return "║" +
                 StringUtils.centerText(firstLine.toString(), 44) +
                 "║" +
                 "\n\r" +
@@ -170,8 +170,6 @@ public class LobbyScreen implements Command, InputListener {
                 StringUtils.centerText(fourthLine.toString(), 44) +
                 "║" +
                 "\n\r";
-
-        return fullCarousel;
     }
 
     private void render() {
@@ -185,7 +183,17 @@ public class LobbyScreen implements Command, InputListener {
                     "║" +
                     StringUtils.centerText(player.getLobby().getPlayers().size() + "/" + player.getLobby().getGame().getMaxLobbySize(), 44) +
                     "║\n\r" +
-                    renderPlayerCarousel() +
+                    "║";
+
+            if(player.getLobby().getPlayers().size()>1){
+                sb += StringUtils.centerText("Leave ^l", 44);
+            }
+            else {
+                sb += "                                            ";
+            }
+            sb += "║\n\r";
+
+            sb += renderPlayerCarousel() +
                     "║" +
                     StringUtils.centerText(message, 44) +
                     "║\n\r" +
@@ -257,6 +265,20 @@ public class LobbyScreen implements Command, InputListener {
                     });
                 }
 
+                if (input == 12) {
+                    if(player.getLobby().getPlayers().size()<=1) {
+                        return;
+                    }
+                    Lobby newLobby = lobbyManager.createLobby();
+                    player.getLobby().removePlayer(player);
+                    newLobby.addPlayer(player);
+                    List<Game> games = gameManager.getGames();
+                    if(!games.isEmpty()) {
+                        Game game = games.get(0);
+                        newLobby.setGame(game);
+                    }
+                }
+
                 if(input == 10) {
                     player.getEventHandler().unregisterListener(this);
                     inviteTextInput = Optional.of(new TextInputScreen(new Runnable() {
@@ -289,13 +311,17 @@ public class LobbyScreen implements Command, InputListener {
                     return;
                 }
 
-                if (input == 3) {
+                if (input == 3 || input == -1) {
                     out.write(EscapeCodeUtils.SWITCH_TO_MAIN_SCREEN.getBytes(StandardCharsets.UTF_8));
                     out.flush();
                     out.write("\nGoodbye\n".getBytes());
                     out.flush();
                     callback.onExit(-1, "Goodbye");
                     playerManager.unregisterPlayer(player);
+                    if(player.getLobby().getPlayers().size()<=1) {
+                        lobbyManager.removeLobby(player.getLobby());
+                    }
+                    player.getLobby().removePlayer(player);
                 }
 
             } catch (IOException e) {
