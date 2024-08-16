@@ -4,6 +4,7 @@ import de.byteingpython.sshGame.event.InputListener;
 import de.byteingpython.sshGame.lobby.Lobby;
 import de.byteingpython.sshGame.player.Player;
 import de.byteingpython.sshGame.utils.EscapeCodeUtils;
+import de.byteingpython.sshGame.utils.StringUtils;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -134,8 +135,36 @@ public class Board implements InputListener {
             return;
         }
         this.setField(this.getCurrentPlayer(), input - 49);
+
         if (this.checkWin(input - 49)||this.isDraw()) {
-            endGame();
+            getCurrentPlayer().getEventHandler().unregisterListener(this);
+            if (isDraw()) {
+                try {
+                    getCurrentPlayer().getOutputStream().write(StringUtils.centerText("Its a tie", 17).getBytes(StandardCharsets.UTF_8));
+                    getCurrentPlayer().getOutputStream().flush();
+                    getOtherPlayer().getOutputStream().write(StringUtils.centerText("Its a tie", 17).getBytes(StandardCharsets.UTF_8));
+                    getOtherPlayer().getOutputStream().flush();
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            } else {
+                try {
+                    getCurrentPlayer().getOutputStream().write(StringUtils.centerText("You won!", 17).getBytes(StandardCharsets.UTF_8));
+                    getCurrentPlayer().getOutputStream().flush();
+                    getOtherPlayer().getOutputStream().write(StringUtils.centerText("You lost!", 17).getBytes(StandardCharsets.UTF_8));
+                    getOtherPlayer().getOutputStream().flush();
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+            new Thread(() -> {
+                try {
+                    Thread.sleep(3000);
+                } catch (InterruptedException e) {
+                    throw new RuntimeException(e);
+                }
+                endGame();
+            }).start();
             return;
         }
         this.getCurrentPlayer().getEventHandler().registerListener(this);
@@ -144,7 +173,6 @@ public class Board implements InputListener {
     }
 
     private void endGame() {
-        getCurrentPlayer().getEventHandler().unregisterListener(this);
         Lobby lobby = getCurrentPlayer().getLobby();
         lobby.getEndCallback().run();
         if (getOtherPlayer().getLobby() != lobby) {
