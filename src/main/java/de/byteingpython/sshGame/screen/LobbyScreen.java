@@ -252,7 +252,11 @@ public class LobbyScreen implements Command, InputListener {
                     SelectScreen<Game> selectScreen = new SelectScreen<>();
                     gameManager.getGames().forEach(game -> selectScreen.addOption(game.getName(), game));
                     selectScreen.selectOption(player).ifPresent(game -> {
-                        player.getLobby().setGame(game);
+                        try {
+                            player.getLobby().setGame(game);
+                        } catch (IllegalStateException e) {
+                            showMessage(e.getMessage(), 3000);
+                        }
                     });
                 }
 
@@ -269,8 +273,18 @@ public class LobbyScreen implements Command, InputListener {
                                 showMessage("This player does not exist", 3000);
                                 return;
                             }
+                            if(invitedPlayer.get()==player) {
+                                showMessage("Nice try! Nope this isn't that easy to fool", 3000);
+                            }
+                            Lobby originalLobby = player.getLobby();
                             player.getLobby().removePlayer(player);
-                            invitedPlayer.get().getLobby().addPlayer(player);
+                            try {
+                                invitedPlayer.get().getLobby().addPlayer(player);
+                                lobbyManager.removeLobby(originalLobby);
+                            } catch (IllegalStateException e) {
+                                showMessage(e.getMessage(), 3000);
+                                originalLobby.addPlayer(player);
+                            }
                             render();
                         }
                     }, player, "Input Player name"));

@@ -15,8 +15,13 @@ public class LocalLobby implements Lobby {
 
     @Override
     public void addPlayer(Player player) {
-        if(players.size()>=game.getMaxLobbySize()){
-            throw new IllegalStateException("L");
+        if(game!=null){
+            if(players.size()>=game.getMaxLobbySize()){
+                throw new IllegalStateException("Lobby is full!");
+            }
+            if(players.contains(player)){
+                throw new IllegalArgumentException("This player is already in the lobby!");
+            }
         }
         player.setLobby(this);
         players.add(player);
@@ -24,6 +29,9 @@ public class LocalLobby implements Lobby {
 
     @Override
     public void removePlayer(Player player) {
+        if(!players.contains(player)){
+            throw new IllegalArgumentException("This player is not in the lobby!");
+        }
         players.remove(player);
     }
 
@@ -44,6 +52,12 @@ public class LocalLobby implements Lobby {
 
     @Override
     public void setGame(Game game) {
+        if(game.getMaxLobbySize()<players.size()){
+            throw new IllegalStateException("Lobby is too big for this Game");
+        }
+        if(players.size()< game.getMinLobbySize()){
+            throw new IllegalStateException("Lobby is too small for this Game");
+        }
         this.game = game;
     }
 
