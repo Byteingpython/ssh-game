@@ -8,7 +8,7 @@ public class User {
     String passwordHash;
     String name;
     String publicKey;
-    List<User> friends;
+    List<String> friends;
 
     public User(String name, String passwordHash) {
         this.name = name;
@@ -34,14 +34,12 @@ public class User {
     }
 
     public void addFriend(User user) {
-        friends.add(user);
     }
 
     public void removeFriend(User user) {
-        friends.remove(user);
     }
 
-    public List<User> getFriends() {
+    public List<String> getFriends() {
         return friends;
     }
 

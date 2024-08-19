@@ -44,7 +44,7 @@ public class SelectScreen<T> {
                     }
                 } else if (input==13){
                     return Optional.of(selected.get(player).getValue());
-                } else if (input == 3) {
+                } else if (input == 3 || input==27) {
                     return Optional.empty();
                 }
 

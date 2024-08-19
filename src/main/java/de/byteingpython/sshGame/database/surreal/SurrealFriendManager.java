@@ -5,6 +5,9 @@ import com.surrealdb.driver.model.QueryResult;
 import de.byteingpython.sshGame.config.ConfigurationProvider;
 import de.byteingpython.sshGame.friends.FriendManager;
 import de.byteingpython.sshGame.player.Player;
+import org.apache.commons.logging.Log;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import javax.naming.ConfigurationException;
 import java.util.ArrayList;
@@ -25,35 +28,37 @@ public class SurrealFriendManager implements FriendManager {
 
     @Override
     public List<String> getFriends(String playerName) throws IllegalArgumentException {
-        List<QueryResult<User>> friendsQueryResult = driver.query("SELECT * FROM user WHERE name=$name", Map.of("name", playerName), User.class);
+        List<QueryResult<FriendList>> friendsQueryResult = driver.query("SELECT friends.name FROM user WHERE name=$name", Map.of("name", playerName), FriendList.class);
         if(friendsQueryResult.get(0).getResult().isEmpty()) {
             throw new IllegalArgumentException("This player does not exist");
         }
-        User user = friendsQueryResult.get(0).getResult().get(0);
-        List<String> friends = new ArrayList<>();
-        for(User iterUser:user.getFriends()){
-            friends.add(iterUser.getName());
-        }
-        return friends;
+        FriendList friendList = friendsQueryResult.get(0).getResult().get(0);
+        return friendList.getFriends().getNames();
     }
 
     @Override
     public void addFriend(Player player, String friend) throws IllegalArgumentException {
-        driver.query("UPDATE user SET friends+=(SELECT VALUE id FROM user WHERE name=$name) WHERE name=$playerName", Map.of("name", friend, "playerName", player.getName()), User.class);
+        if(player.getName().equals(friend)){
+            throw new IllegalArgumentException("You cannot be friends with yourself!");
+        }
+        driver.query("UPDATE user SET friends+=(SELECT VALUE id FROM user WHERE name=$friendName) WHERE name=$playerName", Map.of("friendName", friend, "playerName", player.getName()), Object.class);
     }
 
     @Override
     public void addFriend(Player player, Player friend) {
-
+        addFriend(player, friend.getName());
     }
 
     @Override
     public void removeFriend(Player player, String friend) throws IllegalArgumentException {
-
+        if(player.getName().equals(friend)){
+            throw new IllegalArgumentException("You cannot breakup with yourself!");
+        }
+        driver.query("UPDATE user SET friends-=(SELECT VALUE id FROM user WHERE name=$friendName) WHERE name=$playerName", Map.of("friendName", friend, "playerName", player.getName()), User.class);
     }
 
     @Override
     public void removeFriend(Player player, Player friend) throws IllegalArgumentException {
-
+        removeFriend(player, friend.getName());
     }
 }

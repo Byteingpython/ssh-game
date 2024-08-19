@@ -1,6 +1,7 @@
 package de.byteingpython.sshGame.ssh.shell;
 
 import de.byteingpython.sshGame.config.ConfigurationProvider;
+import de.byteingpython.sshGame.friends.FriendManager;
 import de.byteingpython.sshGame.games.GameManager;
 import de.byteingpython.sshGame.lobby.LobbyManager;
 import de.byteingpython.sshGame.player.PlayerManager;
@@ -35,13 +36,15 @@ public class ShellCommand implements Command {
     private final GameManager gameManager;
     private final Matchmaker matchmaker;
     private final PlayerManager playerManager;
+    private final FriendManager friendManager;
 
-    public ShellCommand(ConfigurationProvider configurationProvider, LobbyManager lobbyManager, PlayerManager playerManager, GameManager gameManager, Matchmaker matchmaker) {
+    public ShellCommand(ConfigurationProvider configurationProvider, LobbyManager lobbyManager, PlayerManager playerManager, GameManager gameManager, Matchmaker matchmaker, FriendManager friendManager) {
         this.configurationProvider = configurationProvider;
         this.lobbyManager = lobbyManager;
         this.gameManager = gameManager;
         this.matchmaker = matchmaker;
         this.playerManager = playerManager;
+        this.friendManager = friendManager;
     }
 
     @Override
@@ -89,7 +92,7 @@ public class ShellCommand implements Command {
                     try {
                         out.write("\033[H\033[2J".getBytes());
                         out.flush();
-                        LobbyScreen lobby = new LobbyScreen(lobbyManager, gameManager, matchmaker, playerManager);
+                        LobbyScreen lobby = new LobbyScreen(lobbyManager, gameManager, matchmaker, playerManager, friendManager);
                         lobby.setInputStream(in);
                         lobby.setOutputStream(out);
                         lobby.setExitCallback(callback);
