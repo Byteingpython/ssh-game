@@ -98,6 +98,7 @@ public class LobbyScreen implements Command, InputListener {
         }
         try {
             player.getOutputStream().write(EscapeCodeUtils.SWITCH_TO_ALTERNATE_SCREEN.getBytes(StandardCharsets.UTF_8));
+            player.getOutputStream().write(EscapeCodeUtils.HIDE_CURSOR.getBytes(StandardCharsets.UTF_8));
             player.getOutputStream().flush();
         } catch (IOException e) {
             logger.error(e.toString());
@@ -134,6 +135,7 @@ public class LobbyScreen implements Command, InputListener {
      */
     private void reregisterListener() {
         player.getEventHandler().registerListener(this);
+        render();
     }
 
     /**
@@ -218,10 +220,79 @@ public class LobbyScreen implements Command, InputListener {
             sb += " ║\n\r" + "╚════════════════════════════════════════════╝";
 
             player.getOutputStream().write(sb.getBytes(StandardCharsets.UTF_8));
+            player.getOutputStream().write(EscapeCodeUtils.HIDE_CURSOR.getBytes(StandardCharsets.UTF_8));
             player.getOutputStream().flush();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    /**
+     * Show a list with all the players friends, options for each friend and the option to add a new friend
+     */
+    public void showFriendMenu() {
+        SelectScreen<String> friendSelectScreen = new SelectScreen<>(player);
+        List<String> friends = friendManager.getFriends(player);
+        for(String friend: friends){
+            String friendOption = friend;
+            if(playerManager.getPlayer(friend).isPresent()){
+                friendOption += " - Online";
+            }
+            friendSelectScreen.addOption(friendOption, friend);
+        }
+        friendSelectScreen.addOption("Add friend", "");
+        player.getEventHandler().unregisterListener(this);
+        LobbyScreen lobbyScreen = this;
+        friendSelectScreen.selectOption(new Runnable() {
+            @Override
+            public void run() {
+                LoggerFactory.getLogger(this.getClass()).info("select screen ended");
+                reregisterListener();
+                if(friendSelectScreen.getSelected().isEmpty()){
+                    return;
+                }
+                if(friendSelectScreen.getSelected().get().isEmpty()){
+                    player.getEventHandler().unregisterListener(lobbyScreen);
+                    try {
+                        lobbyScreen.addFriendTextInput=  Optional.of(new TextInputScreen(() -> {
+                            friendManager.addFriend(player, addFriendTextInput.get().getInput());
+                            reregisterListener();
+                        }, player, "Enter the name of your friend"));
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                    return;
+                }
+
+                SelectScreen<String> friendOptionSelectScreen = new SelectScreen<>(player);
+
+                Optional<Player> selectedFriendPlayer = playerManager.getPlayer(friendSelectScreen.getSelected().get());
+                if(selectedFriendPlayer.isPresent()){
+                    Lobby selectedFriendLobby = selectedFriendPlayer.get().getLobby();
+                    if(selectedFriendLobby.getPlayers().size()<player.getLobby().getGame().getMaxLobbySize()&&!selectedFriendLobby.isPlaying()){
+                        friendOptionSelectScreen.addOption("Join Lobby", "join");
+                    }
+                }
+
+                friendOptionSelectScreen.addOption("Remove friend", "remove");
+
+                player.getEventHandler().unregisterListener(lobbyScreen);
+                friendOptionSelectScreen.selectOption("Options for "+friendSelectScreen.getSelected().get(), () -> {
+                    reregisterListener();
+                    if(friendOptionSelectScreen.getSelected().isEmpty()){
+                        showFriendMenu();
+                        return;
+                    }
+                    if(friendOptionSelectScreen.getSelected().get().equals("remove")){
+                        friendManager.removeFriend(player, friendSelectScreen.getSelected().get());
+                    }
+                    if(friendOptionSelectScreen.getSelected().get().equals("join")){
+                        joinLobby(selectedFriendPlayer);
+                    }
+                });
+
+            }
+        });
     }
 
     @Override
@@ -240,55 +311,8 @@ public class LobbyScreen implements Command, InputListener {
                 }
                 //Show a List with friends and offer Options
                 if (input == 6) {
-                    SelectScreen<String> friendSelectScreen = new SelectScreen<>();
-                    List<String> friends = friendManager.getFriends(player);
-                    for(String friend: friends){
-                        String friendOption = friend;
-                        if(playerManager.getPlayer(friend).isPresent()){
-                            friendOption += " - Online";
-                        }
-                        friendSelectScreen.addOption(friendOption, friend);
-                    }
-                    friendSelectScreen.addOption("Add friend", "");
-                    Optional<String> selectedFriend = friendSelectScreen.selectOption(player);
-                    if(selectedFriend.isEmpty()){
-                        return;
-                    }
-
-                    if(selectedFriend.get().isEmpty()){
-                        player.getEventHandler().unregisterListener(this);
-                        this.addFriendTextInput=  Optional.of(new TextInputScreen(new Runnable() {
-                            @Override
-                            public void run() {
-                               friendManager.addFriend(player, addFriendTextInput.get().getInput());
-                               reregisterListener();
-                            }
-                        }, player, "Enter the name of your friend"));
-                        return;
-                    }
-
-                    SelectScreen<String> friendOptionSelectScreen = new SelectScreen<>();
-
-                    Optional<Player> selectedFriendPlayer = playerManager.getPlayer(selectedFriend.get());
-                    if(selectedFriendPlayer.isPresent()){
-                        Lobby selectedFriendLobby = selectedFriendPlayer.get().getLobby();
-                        if(selectedFriendLobby.getPlayers().size()<player.getLobby().getGame().getMaxLobbySize()&&!selectedFriendLobby.isPlaying()){
-                            friendOptionSelectScreen.addOption("Join Lobby", "join");
-                        }
-                    }
-
-                    friendOptionSelectScreen.addOption("Remove friend", "remove");
-
-                    Optional<String> option = friendOptionSelectScreen.selectOption(player, selectedFriend.get());
-                    if(option.isEmpty()){
-                        return;
-                    }
-                    if(option.get().equals("remove")){
-                        friendManager.removeFriend(player, selectedFriend.get());
-                    }
-                    if(option.get().equals("join")){
-                        joinLobby(selectedFriendPlayer);
-                    }
+                    showFriendMenu();
+                    return;
                 }
 
                 //Start matchmaking
@@ -306,15 +330,21 @@ public class LobbyScreen implements Command, InputListener {
 
                 //Select a game
                 if (input == 13) {
-                    SelectScreen<Game> selectScreen = new SelectScreen<>();
+                    SelectScreen<Game> selectScreen = new SelectScreen<>(player);
                     gameManager.getGames().forEach(game -> selectScreen.addOption(game.getName(), game));
-                    selectScreen.selectOption(player).ifPresent(game -> {
-                        try {
-                            player.getLobby().setGame(game);
-                        } catch (IllegalStateException e) {
-                            showMessage(e.getMessage(), 3000);
-                        }
+                    player.getEventHandler().unregisterListener(this);
+                    selectScreen.selectOption("Select gamemode", () -> {
+                        reregisterListener();
+                        selectScreen.getSelected().ifPresent(game -> {
+                            try {
+                                player.getLobby().setGame(game);
+                            } catch (IllegalStateException e) {
+                                showMessage(e.getMessage(), 3000);
+                            }
+                        });
                     });
+                    return;
+
                 }
 
                 //Leave the current lobby
@@ -356,18 +386,23 @@ public class LobbyScreen implements Command, InputListener {
                     return;
                 }
 
-                //Leave the game
-                if (input == 3 || input == -1) {
+                if(input==3){
                     out.write(EscapeCodeUtils.SWITCH_TO_MAIN_SCREEN.getBytes(StandardCharsets.UTF_8));
                     out.flush();
                     out.write("\nGoodbye\n".getBytes());
                     out.flush();
                     callback.onExit(-1, "Goodbye");
+                    return;
+                }
+                //Leave the game
+                if (input == -1) {
                     playerManager.unregisterPlayer(player);
                     if (player.getLobby().getPlayers().size() <= 1) {
                         lobbyManager.removeLobby(player.getLobby());
                     }
                     player.getLobby().removePlayer(player);
+                    player.getEventHandler().unregisterListener(this);
+                    return;
                 }
 
             } catch (IOException e) {
