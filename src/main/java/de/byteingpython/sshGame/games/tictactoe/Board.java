@@ -21,7 +21,7 @@ public class Board implements InputListener {
         players.put(player2, Sign.O);
         currentPlayer = player1;
         otherPlayer = player2;
-        currentPlayer.getEventHandler().registerListener(this);
+        currentPlayer.getInputEventHandler().registerListener(this);
         renderAll();
     }
 
@@ -84,6 +84,12 @@ public class Board implements InputListener {
 
     public void render(Player player) {
         StringBuilder sb = new StringBuilder();
+        if(currentPlayer==player) {
+            sb.append(StringUtils.centerText("Your Turn", 17));
+        } else {
+            sb.append(StringUtils.centerText(otherPlayer.getName()+"'s Turn", 17));
+        }
+        sb.append("\n\r");
         for (int i = 0; i < 3; i++) {
             sb.append("     │     │     \n\r");
             for (int j = 0; j < 3; j++) {
@@ -137,7 +143,7 @@ public class Board implements InputListener {
         this.setField(this.getCurrentPlayer(), input - 49);
 
         if (this.checkWin(input - 49)||this.isDraw()) {
-            getCurrentPlayer().getEventHandler().unregisterListener(this);
+            getCurrentPlayer().getInputEventHandler().unregisterListener(this);
             if (isDraw()) {
                 try {
                     getCurrentPlayer().getOutputStream().write(StringUtils.centerText("Its a tie", 17).getBytes(StandardCharsets.UTF_8));
@@ -167,8 +173,8 @@ public class Board implements InputListener {
             }).start();
             return;
         }
-        this.getCurrentPlayer().getEventHandler().registerListener(this);
-        this.getOtherPlayer().getEventHandler().unregisterListener(this);
+        this.getCurrentPlayer().getInputEventHandler().registerListener(this);
+        this.getOtherPlayer().getInputEventHandler().unregisterListener(this);
         renderAll();
     }
 
