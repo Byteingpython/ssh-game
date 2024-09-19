@@ -15,9 +15,9 @@ jobs:
       - name: Docker Compose Build A Service & Push Action         
         uses: 1-1is0/docker-compose-build-push@publish
         with:
-          image: image-name
+          image: ssh-game
           registry: ghcr.io
-          githubOrg: override-org # optional
+          githubOrg: Byteingpython # optional
           username: Byteingpython
           password: ${{ secrets.GITHUB_TOKEN }}
           dockerfile: "Dockerfile"
