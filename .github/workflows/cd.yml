@@ -20,3 +20,4 @@ jobs:
           githubOrg: override-org # optional
           username: Byteingpython
           password: ${{ secrets.GITHUB_TOKEN }}
+          dockerfile: "Dockerfile"
