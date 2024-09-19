@@ -40,3 +40,8 @@ build/
 out/
 .env
 .idea/discord.xml
+
+### Surrealdb ###
+history.txt
+
+data/

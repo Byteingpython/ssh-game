@@ -3,6 +3,8 @@ package de.byteingpython.sshGame;
 import de.byteingpython.sshGame.config.ConfigurationProvider;
 import de.byteingpython.sshGame.config.EnvConfigurationProvider;
 import de.byteingpython.sshGame.database.surreal.SurrealCredentialProvider;
+import de.byteingpython.sshGame.database.surreal.SurrealFriendManager;
+import de.byteingpython.sshGame.friends.FriendManager;
 import de.byteingpython.sshGame.ssh.SshGameServerBuilder;
 import org.apache.sshd.server.SshServer;
 import org.slf4j.Logger;

@@ -1,0 +1,22 @@
+name: "SSH-Game"
+services:
+  ssh-server:
+    build: .
+    image: ghcr.io/byteingpython/ssh-game
+    ports:
+      - "2022:2022"
+    environment:
+      REDIS_HOST: "keydb"
+      REDIS_PORT: 6379
+      SSH_PORT: 2022
+      SURREALDB_HOST: "surrealdb"
+      SURREALDB_PORT: "8000"
+  surrealdb:
+    pull_policy: always
+    user: "root"
+    volumes:
+      - ./data:/data
+    image: surrealdb/surrealdb:latest
+    command: start file:/data/surrealdb.db
+  keydb:
+    image: eqalpha/keydb

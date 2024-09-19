@@ -17,6 +17,9 @@ public class StreamReaderInputHandler implements InputEventHandler {
                     for (InputListener listener : (ArrayList<InputListener>)listeners.clone()) {
                         listener.onInput(input);
                     }
+                    if(input == -1){
+                        break;
+                    }
                 }
             } catch (IOException e) {
                    throw new RuntimeException(e);
