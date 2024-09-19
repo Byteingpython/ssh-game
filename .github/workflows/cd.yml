@@ -1,0 +1,22 @@
+name: CD-Pipeline
+on:
+  push:
+    branches:
+      - master
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+jobs:
+  Docker-Image:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+        name: Check out code
+        
+      - name: Docker Compose Build A Service & Push Action         
+        uses: 1-1is0/docker-compose-build-push@publish
+        with:
+          image: image-name
+          registry: ghcr.io
+          githubOrg: override-org # optional
+          username: Byteingpython
+          password: ${{ secrets.GITHUB_TOKEN }}.
