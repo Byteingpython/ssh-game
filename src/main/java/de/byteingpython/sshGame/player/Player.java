@@ -1,5 +1,6 @@
 package de.byteingpython.sshGame.player;
 
+import de.byteingpython.sshGame.event.EventHandler;
 import de.byteingpython.sshGame.event.InputEventHandler;
 import de.byteingpython.sshGame.games.StreamHolder;
 import de.byteingpython.sshGame.lobby.Lobby;
@@ -13,5 +14,7 @@ public interface Player extends StreamHolder {
 
     Runnable getEndCallback();
 
-    InputEventHandler getEventHandler();
+    InputEventHandler getInputEventHandler();
+
+    EventHandler getEventHandler();
 }

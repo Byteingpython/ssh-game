@@ -1,6 +1,7 @@
 package de.byteingpython.sshGame.screen;
 
 
+import de.byteingpython.sshGame.event.EventListener;
 import de.byteingpython.sshGame.event.InputListener;
 import de.byteingpython.sshGame.friends.FriendManager;
 import de.byteingpython.sshGame.games.Game;
@@ -106,7 +107,8 @@ public class LobbyScreen implements Command, InputListener {
             return;
         }
         logger.trace("Starting lobby");
-        player.getEventHandler().registerListener(this);
+        player.getInputEventHandler().registerListener(this);
+        player.getEventHandler().registerListeners(this);
         render();
     }
 
@@ -134,7 +136,8 @@ public class LobbyScreen implements Command, InputListener {
      * Reregister the InputListener
      */
     private void reregisterListener() {
-        player.getEventHandler().registerListener(this);
+        player.getInputEventHandler().registerListener(this);
+        player.getEventHandler().unregisterListeners(this);
         render();
     }
 
@@ -241,7 +244,7 @@ public class LobbyScreen implements Command, InputListener {
             friendSelectScreen.addOption(friendOption, friend);
         }
         friendSelectScreen.addOption("Add friend", "");
-        player.getEventHandler().unregisterListener(this);
+        player.getInputEventHandler().unregisterListener(this);
         LobbyScreen lobbyScreen = this;
         friendSelectScreen.selectOption(new Runnable() {
             @Override
@@ -252,7 +255,7 @@ public class LobbyScreen implements Command, InputListener {
                     return;
                 }
                 if(friendSelectScreen.getSelected().get().isEmpty()){
-                    player.getEventHandler().unregisterListener(lobbyScreen);
+                    player.getInputEventHandler().unregisterListener(lobbyScreen);
                     try {
                         lobbyScreen.addFriendTextInput=  Optional.of(new TextInputScreen(() -> {
                             friendManager.addFriend(player, addFriendTextInput.get().getInput());
@@ -276,7 +279,7 @@ public class LobbyScreen implements Command, InputListener {
 
                 friendOptionSelectScreen.addOption("Remove friend", "remove");
 
-                player.getEventHandler().unregisterListener(lobbyScreen);
+                player.getInputEventHandler().unregisterListener(lobbyScreen);
                 friendOptionSelectScreen.selectOption("Options for "+friendSelectScreen.getSelected().get(), () -> {
                     reregisterListener();
                     if(friendOptionSelectScreen.getSelected().isEmpty()){
@@ -332,7 +335,7 @@ public class LobbyScreen implements Command, InputListener {
                 if (input == 13) {
                     SelectScreen<Game> selectScreen = new SelectScreen<>(player);
                     gameManager.getGames().forEach(game -> selectScreen.addOption(game.getName(), game));
-                    player.getEventHandler().unregisterListener(this);
+                    player.getInputEventHandler().unregisterListener(this);
                     selectScreen.selectOption("Select gamemode", () -> {
                         reregisterListener();
                         selectScreen.getSelected().ifPresent(game -> {
@@ -353,6 +356,7 @@ public class LobbyScreen implements Command, InputListener {
                         return;
                     }
                     Lobby newLobby = lobbyManager.createLobby();
+                    Lobby oldLobby = player.getLobby();
                     player.getLobby().removePlayer(player);
                     newLobby.addPlayer(player);
                     List<Game> games = gameManager.getGames();
@@ -360,11 +364,15 @@ public class LobbyScreen implements Command, InputListener {
                         Game game = games.get(0);
                         newLobby.setGame(game);
                     }
+                    //Notify the other players that a rerender is necessary
+                    for(Player player:oldLobby.getPlayers()){
+                        player.getEventHandler().handle(new ScreenUpdateEvent());
+                    }
                 }
 
                 //Join the lobby of another player
                 if (input == 10) {
-                    player.getEventHandler().unregisterListener(this);
+                    player.getInputEventHandler().unregisterListener(this);
                     inviteTextInput = Optional.of(new TextInputScreen(new Runnable() {
                         @Override
                         public void run() {
@@ -388,6 +396,7 @@ public class LobbyScreen implements Command, InputListener {
 
                 if(input==3){
                     out.write(EscapeCodeUtils.SWITCH_TO_MAIN_SCREEN.getBytes(StandardCharsets.UTF_8));
+                    out.write(EscapeCodeUtils.SHOW_CURSOR.getBytes(StandardCharsets.UTF_8));
                     out.flush();
                     out.write("\nGoodbye\n".getBytes());
                     out.flush();
@@ -401,7 +410,7 @@ public class LobbyScreen implements Command, InputListener {
                         lobbyManager.removeLobby(player.getLobby());
                     }
                     player.getLobby().removePlayer(player);
-                    player.getEventHandler().unregisterListener(this);
+                    player.getInputEventHandler().unregisterListener(this);
                     return;
                 }
 
@@ -419,11 +428,19 @@ public class LobbyScreen implements Command, InputListener {
         player.getLobby().removePlayer(player);
         try {
             invitedPlayer.get().getLobby().addPlayer(player);
-            lobbyManager.removeLobby(originalLobby);
+            if(originalLobby.getPlayers().isEmpty()){
+                lobbyManager.removeLobby(originalLobby);
+            }
         } catch (IllegalStateException e) {
             showMessage(e.getMessage(), 3000);
             originalLobby.addPlayer(player);
         }
+        render();
+        invitedPlayer.get().getEventHandler().handle(new ScreenUpdateEvent());
+    }
+
+    @EventListener
+    public void onUpdate(ScreenUpdateEvent event) {
         render();
     }
 }

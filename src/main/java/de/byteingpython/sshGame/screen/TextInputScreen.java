@@ -15,7 +15,7 @@ public class TextInputScreen implements InputListener {
     public TextInputScreen(Runnable endCallback, Player player, String message) throws IOException {
         this.endCallback = endCallback;
         this.player = player;
-        player.getEventHandler().registerListener(this);
+        player.getInputEventHandler().registerListener(this);
         player.getOutputStream().write(EscapeCodeUtils.CLEAR_SCREEN.getBytes(StandardCharsets.UTF_8));
         player.getOutputStream().write(EscapeCodeUtils.SHOW_CURSOR.getBytes(StandardCharsets.UTF_8));
         player.getOutputStream().flush();
@@ -48,7 +48,7 @@ public class TextInputScreen implements InputListener {
             }
         }
         if (input == 13||input == 3) {
-            player.getEventHandler().unregisterListener(this);
+            player.getInputEventHandler().unregisterListener(this);
             try {
                 player.getOutputStream().write(EscapeCodeUtils.HIDE_CURSOR.getBytes(StandardCharsets.UTF_8));
                 player.getOutputStream().flush();

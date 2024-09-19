@@ -28,7 +28,7 @@ public class SelectScreen<T> implements InputListener {
     }
 
     public void selectOption(String message, Runnable endRunnable) {
-        player.getEventHandler().registerListener(this);
+        player.getInputEventHandler().registerListener(this);
         this.message = message;
         this.endRunnable = endRunnable;
         if(options.isEmpty()) {
@@ -101,12 +101,12 @@ public class SelectScreen<T> implements InputListener {
         if (input == 91) {
             escaped = true;
         } else if (input==13){
-            player.getEventHandler().unregisterListener(this);
+            player.getInputEventHandler().unregisterListener(this);
             endRunnable.run();
             return;
         } else if (input == 3) {
             selected = Optional.empty();
-            player.getEventHandler().unregisterListener(this);
+            player.getInputEventHandler().unregisterListener(this);
             endRunnable.run();
             return;
         }
