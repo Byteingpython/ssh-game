@@ -4,6 +4,7 @@ package de.byteingpython.sshGame.screen;
 import de.byteingpython.sshGame.event.EventListener;
 import de.byteingpython.sshGame.event.InputListener;
 import de.byteingpython.sshGame.friends.FriendManager;
+import de.byteingpython.sshGame.friends.FriendRequest;
 import de.byteingpython.sshGame.games.Game;
 import de.byteingpython.sshGame.games.GameManager;
 import de.byteingpython.sshGame.lobby.Lobby;
@@ -25,10 +26,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.List;
-import java.util.Optional;
-import java.util.Timer;
-import java.util.TimerTask;
+import java.util.*;
 
 public class LobbyScreen implements Command, InputListener {
 
@@ -243,8 +241,12 @@ public class LobbyScreen implements Command, InputListener {
             }
             friendSelectScreen.addOption(friendOption, friend);
         }
+        List<FriendRequest> friendRequests = friendManager.getFriendRequests(player);
+        if(!friendRequests.isEmpty()){
+            friendSelectScreen.addOption("Friend Requests ("+friendRequests.size()+")", "-1");
+        }
         friendSelectScreen.addOption("Add friend", "");
-        player.getInputEventHandler().unregisterListener(this);
+        unregisterListeners(this);
         LobbyScreen lobbyScreen = this;
         friendSelectScreen.selectOption(new Runnable() {
             @Override
@@ -255,15 +257,19 @@ public class LobbyScreen implements Command, InputListener {
                     return;
                 }
                 if(friendSelectScreen.getSelected().get().isEmpty()){
-                    player.getInputEventHandler().unregisterListener(lobbyScreen);
+                    unregisterListeners(lobbyScreen);
                     try {
                         lobbyScreen.addFriendTextInput=  Optional.of(new TextInputScreen(() -> {
-                            friendManager.addFriend(player, addFriendTextInput.get().getInput());
+                            friendManager.createFriendRequest(player, addFriendTextInput.get().getInput());
                             reregisterListener();
                         }, player, "Enter the name of your friend"));
                     } catch (IOException e) {
                         throw new RuntimeException(e);
                     }
+                    return;
+                }
+                if(friendSelectScreen.getSelected().get().equals("-1")){
+                    showFriendRequestMenu();
                     return;
                 }
 
@@ -279,7 +285,7 @@ public class LobbyScreen implements Command, InputListener {
 
                 friendOptionSelectScreen.addOption("Remove friend", "remove");
 
-                player.getInputEventHandler().unregisterListener(lobbyScreen);
+                unregisterListeners(lobbyScreen);
                 friendOptionSelectScreen.selectOption("Options for "+friendSelectScreen.getSelected().get(), () -> {
                     reregisterListener();
                     if(friendOptionSelectScreen.getSelected().isEmpty()){
@@ -296,6 +302,38 @@ public class LobbyScreen implements Command, InputListener {
 
             }
         });
+    }
+
+    private void showFriendRequestMenu() {
+        List<FriendRequest> friendRequests = friendManager.getFriendRequests(player);
+        SelectScreen<FriendRequest> friendRequestSelectScreen = new SelectScreen<>(player);
+        for(FriendRequest friendRequest : friendRequests){
+            friendRequestSelectScreen.addOption(friendRequest.getSource(), friendRequest);
+        }
+        unregisterListeners(this);
+        friendRequestSelectScreen.selectOption("Select Friend Request", () -> {
+            reregisterListener();
+            if(friendRequestSelectScreen.getSelected().isEmpty()){
+                showFriendMenu();
+            }
+            SelectScreen<String> friendRequestOptionsScreen = new SelectScreen<>(player);
+            friendRequestOptionsScreen.addOption("Accept", "accept");
+            friendRequestOptionsScreen.addOption("Decline", "decline");
+            unregisterListeners(this);
+            friendRequestOptionsScreen.selectOption("Select option for Friend Request", () -> {
+                reregisterListener();
+                if(friendRequestOptionsScreen.getSelected().isEmpty()){
+                    showFriendRequestMenu();
+                }
+                if(friendRequestOptionsScreen.getSelected().get().equals("accept")){
+                    friendRequestSelectScreen.getSelected().get().accept();
+                }
+                if(friendRequestOptionsScreen.getSelected().get().equals("decline")){
+                    friendRequestSelectScreen.getSelected().get().decline();
+                }
+            });
+        });
+
     }
 
     @Override
@@ -335,7 +373,7 @@ public class LobbyScreen implements Command, InputListener {
                 if (input == 13) {
                     SelectScreen<Game> selectScreen = new SelectScreen<>(player);
                     gameManager.getGames().forEach(game -> selectScreen.addOption(game.getName(), game));
-                    player.getInputEventHandler().unregisterListener(this);
+                    unregisterListeners(this);
                     selectScreen.selectOption("Select gamemode", () -> {
                         reregisterListener();
                         selectScreen.getSelected().ifPresent(game -> {
@@ -372,7 +410,7 @@ public class LobbyScreen implements Command, InputListener {
 
                 //Join the lobby of another player
                 if (input == 10) {
-                    player.getInputEventHandler().unregisterListener(this);
+                    unregisterListeners(this);
                     inviteTextInput = Optional.of(new TextInputScreen(new Runnable() {
                         @Override
                         public void run() {
@@ -410,7 +448,7 @@ public class LobbyScreen implements Command, InputListener {
                         lobbyManager.removeLobby(player.getLobby());
                     }
                     player.getLobby().removePlayer(player);
-                    player.getInputEventHandler().unregisterListener(this);
+                    unregisterListeners(this);
                     return;
                 }
 
@@ -421,6 +459,11 @@ public class LobbyScreen implements Command, InputListener {
         if (!player.getLobby().isPlaying()) {
             render();
         }
+    }
+
+    private void unregisterListeners(LobbyScreen listener) {
+        player.getInputEventHandler().unregisterListener(this);
+        player.getEventHandler().unregisterListeners(this);
     }
 
     private void joinLobby(Optional<Player> invitedPlayer) {
@@ -435,12 +478,15 @@ public class LobbyScreen implements Command, InputListener {
             showMessage(e.getMessage(), 3000);
             originalLobby.addPlayer(player);
         }
-        render();
-        invitedPlayer.get().getEventHandler().handle(new ScreenUpdateEvent());
+        // Update all  the players screens so the new player is displayed
+        for(Player lobbyPlayer:player.getLobby().getPlayers()){
+            lobbyPlayer.getEventHandler().handle(new ScreenUpdateEvent());
+        }
     }
 
     @EventListener
     public void onUpdate(ScreenUpdateEvent event) {
+        if(player.getLobby().isPlaying()) return;
         render();
     }
 }

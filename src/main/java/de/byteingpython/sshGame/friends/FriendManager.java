@@ -11,7 +11,7 @@ public interface FriendManager {
      * @param player The player whose friends should be queried
      * @return A list of the names of friends
      */
-    public List<String> getFriends(Player player);
+    List<String> getFriends(Player player);
 
     /**
      * Get the friends of this player
@@ -19,7 +19,7 @@ public interface FriendManager {
      * @param playerName The player whose friends should be queried
      * @return A list of the names of friends
      */
-    public List<String> getFriends(String playerName);
+    List<String> getFriends(String playerName);
 
     /**
      * Add a friend to a player
@@ -28,7 +28,7 @@ public interface FriendManager {
      * @param friend The name of the friend to be added
      * @throws IllegalArgumentException Is thrown when the friend does not exist
      */
-    public void addFriend(Player player, String friend) throws IllegalArgumentException;
+    void createFriendRequest(Player player, String friend) throws IllegalArgumentException;
 
     /**
      * Add a friend to a player
@@ -36,7 +36,7 @@ public interface FriendManager {
      * @param player The player whose friend should be added
      * @param friend The friend to be added
      */
-    public void addFriend(Player player, Player friend);
+    void createFriendRequest(Player player, Player friend);
 
     /**
      * Remove a friend of a player
@@ -45,7 +45,7 @@ public interface FriendManager {
      * @param friend The name of the friend to be removed
      * @throws IllegalArgumentException Is thrown if the friend does not exist
      */
-    public void removeFriend(Player player, String friend) throws IllegalArgumentException;
+    void removeFriend(Player player, String friend) throws IllegalArgumentException;
 
     /**
      * Remove a friend of a player
@@ -54,5 +54,13 @@ public interface FriendManager {
      * @param friend The name of the friend to be removed
      * @throws IllegalArgumentException Is thrown if the friend does not exist
      */
-    public void removeFriend(Player player, Player friend) throws IllegalArgumentException;
+    void removeFriend(Player player, Player friend) throws IllegalArgumentException;
+
+    /**
+     * Get all friend requests targeting the specified player
+     *
+     * @param player The target player
+     * @return All friend requests targeting the player
+     */
+    List<FriendRequest> getFriendRequests(Player player);
 }
