@@ -9,6 +9,8 @@ import de.byteingpython.sshGame.friends.FriendUpdateEvent;
 import de.byteingpython.sshGame.friends.FriendUpdateEventType;
 import de.byteingpython.sshGame.player.Player;
 import de.byteingpython.sshGame.player.PlayerManager;
+import de.byteingpython.sshGame.screen.LobbyScreenMessageEvent;
+import de.byteingpython.sshGame.utils.Message;
 
 import javax.naming.ConfigurationException;
 import java.util.ArrayList;
@@ -25,6 +27,14 @@ public class SurrealFriendManager implements FriendManager {
         driver = new ConfigSurrealDriver(config);
         this.configurationProvider = config;
         this.playerManager = playerManager;
+        String sql = """
+                DEFINE TABLE IF NOT EXISTS friend_of TYPE RELATION IN user OUT user ENFORCED;
+                DEFINE TABLE IF NOT EXISTS friend_request IN user OUT user ENFORCED;
+                DEFINE INDEX IF NOT EXISTS unique_friend_requests ON TABLE friend_request COLUMNS in, out UNIQUE;
+                DEFINE FIELD IF NOT EXISTS key ON TABLE friend_of VALUE <string>array::sort([$this.in, $this.out]);
+                DEFINE INDEX IF NOT EXISTS only_one_friendship ON TABLE friend_of
+                """;
+        driver.query(sql, Map.of(), Object.class);
     }
 
     @Override
@@ -46,9 +56,16 @@ public class SurrealFriendManager implements FriendManager {
         if(player.getName().equals(friend)){
             throw new IllegalArgumentException("You cannot be friends with yourself!");
         }
-        driver.query("RELATE (SELECT VALUE id FROM user WHERE name=$playerName)->friend_request->(SELECT VALUE id FROM user WHERE name=$friendName) SET created=time::now()", Map.of("friendName", friend, "playerName", player.getName()), Object.class);
-        Optional<Player> target = playerManager.getPlayer(friend);
-        target.ifPresent(value -> value.getEventHandler().handle(new FriendUpdateEvent(player.getName(), FriendUpdateEventType.REQUESTED)));
+        if (getFriends(player).contains(friend)) {
+            player.getEventHandler().handle(new LobbyScreenMessageEvent(new Message("You are already friends with this player", 3000)));
+        }
+        try {
+            driver.query("RELATE (SELECT VALUE id FROM user WHERE name=$playerName)->friend_request->(SELECT VALUE id FROM user WHERE name=$friendName) SET created=time::now()", Map.of("friendName", friend, "playerName", player.getName()), Object.class);
+            Optional<Player> target = playerManager.getPlayer(friend);
+            target.ifPresent(value -> value.getEventHandler().handle(new FriendUpdateEvent(player.getName(), FriendUpdateEventType.REQUESTED)));
+        } catch (Exception e) {
+            player.getEventHandler().handle(new LobbyScreenMessageEvent(new Message("You have already sent this player a request", 3000)));
+        }
     }
 
     @Override

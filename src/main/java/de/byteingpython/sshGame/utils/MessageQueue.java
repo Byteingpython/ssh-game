@@ -10,12 +10,15 @@ public class MessageQueue {
     private final List<Message> messages = new ArrayList<>();
     private String placeholder;
     private boolean busy = false;
+    private final Runnable updateRunnable;
 
-    public MessageQueue(String placeholder) {
+    public MessageQueue(String placeholder, Runnable updateRunnable) {
         this.placeholder = placeholder;
+        this.updateRunnable = updateRunnable;
     }
 
-    public MessageQueue() {
+    public MessageQueue(Runnable updateRunnable) {
+        this.updateRunnable = updateRunnable;
         placeholder = "";
     }
 
@@ -33,6 +36,7 @@ public class MessageQueue {
 
     public void addMessage(Message message) {
         messages.add(message);
+        updateRunnable.run();
     }
 
     private void startNextMessage() {
@@ -44,9 +48,11 @@ public class MessageQueue {
                 messages.remove(message);
                 if (messages.isEmpty()) {
                     busy = false;
+                    updateRunnable.run();
                     return;
                 }
                 startNextMessage();
+                updateRunnable.run();
             }
         };
         timer.schedule(task, message.duration());

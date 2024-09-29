@@ -16,6 +16,7 @@ public class Board implements InputListener {
     private final Map<Player, Sign> players = new HashMap<>();
     private Player currentPlayer;
     private Player otherPlayer;
+    private boolean end = false;
     public Board(Player player1, Player player2) {
         players.put(player1, Sign.X);
         players.put(player2, Sign.O);
@@ -95,7 +96,7 @@ public class Board implements InputListener {
             for (int j = 0; j < 3; j++) {
                 sb.append("  ");
                 if (board[i * 3 + j] == 0) {
-                    if (player == currentPlayer) {
+                    if (player == currentPlayer && !end) {
                         sb.append(i * 3 + j + 1);
                     } else {
                         sb.append(" ");
@@ -143,7 +144,9 @@ public class Board implements InputListener {
         this.setField(this.getCurrentPlayer(), input - 49);
 
         if (this.checkWin(input - 49)||this.isDraw()) {
+            end = true;
             getCurrentPlayer().getInputEventHandler().unregisterListener(this);
+            renderAll();
             if (isDraw()) {
                 try {
                     getCurrentPlayer().getOutputStream().write(StringUtils.centerText("Its a tie", 17).getBytes(StandardCharsets.UTF_8));
