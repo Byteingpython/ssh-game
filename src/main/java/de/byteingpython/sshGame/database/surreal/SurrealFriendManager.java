@@ -5,20 +5,26 @@ import com.surrealdb.driver.model.QueryResult;
 import de.byteingpython.sshGame.config.ConfigurationProvider;
 import de.byteingpython.sshGame.friends.FriendManager;
 import de.byteingpython.sshGame.friends.FriendRequest;
+import de.byteingpython.sshGame.friends.FriendUpdateEvent;
+import de.byteingpython.sshGame.friends.FriendUpdateEventType;
 import de.byteingpython.sshGame.player.Player;
+import de.byteingpython.sshGame.player.PlayerManager;
 
 import javax.naming.ConfigurationException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 public class SurrealFriendManager implements FriendManager {
     private final SyncSurrealDriver driver;
     private final ConfigurationProvider configurationProvider;
+    private final PlayerManager playerManager;
 
-    public SurrealFriendManager(ConfigurationProvider config) throws ConfigurationException {
+    public SurrealFriendManager(ConfigurationProvider config, PlayerManager playerManager) throws ConfigurationException {
         driver = new ConfigSurrealDriver(config);
         this.configurationProvider = config;
+        this.playerManager = playerManager;
     }
 
     @Override
@@ -41,6 +47,8 @@ public class SurrealFriendManager implements FriendManager {
             throw new IllegalArgumentException("You cannot be friends with yourself!");
         }
         driver.query("RELATE (SELECT VALUE id FROM user WHERE name=$playerName)->friend_request->(SELECT VALUE id FROM user WHERE name=$friendName) SET created=time::now()", Map.of("friendName", friend, "playerName", player.getName()), Object.class);
+        Optional<Player> target = playerManager.getPlayer(friend);
+        target.ifPresent(value -> value.getEventHandler().handle(new FriendUpdateEvent(player.getName(), FriendUpdateEventType.REQUESTED)));
     }
 
     @Override
@@ -54,6 +62,8 @@ public class SurrealFriendManager implements FriendManager {
             throw new IllegalArgumentException("You cannot breakup with yourself!");
         }
         driver.query("DELETE array::at((SELECT VALUE id FROM user WHERE name=$playerName), 0)<->friend_of WHERE in.name=$friendName || out.name=$friendName", Map.of("friendName", friend, "playerName", player.getName()), Object.class);
+        Optional<Player> target = playerManager.getPlayer(friend);
+        target.ifPresent(value -> value.getEventHandler().handle(new FriendUpdateEvent(player.getName(), FriendUpdateEventType.REMOVED)));
     }
 
     @Override
@@ -68,7 +78,7 @@ public class SurrealFriendManager implements FriendManager {
         List<QueryResult<DatabaseFriendRequest>> friendRequests = driver.query("SELECT <-(friend_request WHERE created>time::now()-1w)<-user.name as requests FROM user WHERE name=$playerName", Map.of("playerName", player.getName(), "ttl", ttl), DatabaseFriendRequest.class);
         List<FriendRequest> friendRequestList = new ArrayList<>();
         for(String source:friendRequests.get(0).getResult().get(0).getRequests()){
-           friendRequestList.add(new SurrealFriendRequest(source, player.getName(), driver));
+            friendRequestList.add(new SurrealFriendRequest(source, player.getName(), driver, playerManager));
         }
         return friendRequestList;
     }

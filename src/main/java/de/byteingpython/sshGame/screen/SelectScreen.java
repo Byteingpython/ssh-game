@@ -7,6 +7,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Optional;
@@ -18,6 +19,7 @@ public class SelectScreen<T> implements InputListener {
     private final Player player;
     private String message;
     private boolean escaped = false;
+    private boolean running = false;
 
     public SelectScreen(Player player) {
         this.player = player;
@@ -25,12 +27,21 @@ public class SelectScreen<T> implements InputListener {
 
     public void addOption(String name, T value) {
         options.put(name, value);
+        if (running) {
+            try {
+                selected = Optional.of(options.entrySet().iterator().next());
+                render();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
     }
 
     public void selectOption(String message, Runnable endRunnable) {
         player.getInputEventHandler().registerListener(this);
         this.message = message;
         this.endRunnable = endRunnable;
+        running = true;
         if(options.isEmpty()) {
             throw new IllegalArgumentException("Options must not be empty");
         }
@@ -86,6 +97,9 @@ public class SelectScreen<T> implements InputListener {
     @Override
     public void onInput(int input) {
         LoggerFactory.getLogger(this.getClass()).info("Select input: " + input);
+        if (options.isEmpty()) {
+            return;
+        }
         if(escaped) {
             escaped = false;
             switch (input) {
@@ -101,11 +115,13 @@ public class SelectScreen<T> implements InputListener {
         if (input == 91) {
             escaped = true;
         } else if (input==13){
+            running = false;
             player.getInputEventHandler().unregisterListener(this);
             endRunnable.run();
             return;
         } else if (input == 3) {
             selected = Optional.empty();
+            running = false;
             player.getInputEventHandler().unregisterListener(this);
             endRunnable.run();
             return;
@@ -119,5 +135,41 @@ public class SelectScreen<T> implements InputListener {
 
     public Optional<T> getSelected() {
         return selected.map(Map.Entry::getValue);
+    }
+
+    public void clearOptions() {
+        options.clear();
+        selected = Optional.empty();
+        if (running) {
+            try {
+                render();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+    }
+
+    protected Player getPlayer() {
+        return player;
+    }
+
+    public void removeOption(T value) {
+        if (selected.isPresent()) {
+            if (selected.get().getValue().equals(value)) {
+                selected = Optional.ofNullable(getPreviousEntry());
+            }
+        }
+        for (Map.Entry<String, T> entry : new HashSet<>((options.entrySet()))) {
+            if (entry.getValue().equals(value)) {
+                options.remove(entry.getKey());
+            }
+        }
+        if (running) {
+            try {
+                render();
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
     }
 }

@@ -4,7 +4,6 @@ package de.byteingpython.sshGame.screen;
 import de.byteingpython.sshGame.event.EventListener;
 import de.byteingpython.sshGame.event.InputListener;
 import de.byteingpython.sshGame.friends.FriendManager;
-import de.byteingpython.sshGame.friends.FriendRequest;
 import de.byteingpython.sshGame.games.Game;
 import de.byteingpython.sshGame.games.GameManager;
 import de.byteingpython.sshGame.lobby.Lobby;
@@ -14,6 +13,8 @@ import de.byteingpython.sshGame.player.LocalPlayer;
 import de.byteingpython.sshGame.player.Player;
 import de.byteingpython.sshGame.player.PlayerManager;
 import de.byteingpython.sshGame.utils.EscapeCodeUtils;
+import de.byteingpython.sshGame.utils.Message;
+import de.byteingpython.sshGame.utils.MessageQueue;
 import de.byteingpython.sshGame.utils.StringUtils;
 import org.apache.sshd.server.Environment;
 import org.apache.sshd.server.ExitCallback;
@@ -26,7 +27,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
-import java.util.*;
+import java.util.List;
+import java.util.Optional;
 
 public class LobbyScreen implements Command, InputListener {
 
@@ -41,8 +43,8 @@ public class LobbyScreen implements Command, InputListener {
     private OutputStream err;
     private ExitCallback callback;
     private Optional<TextInputScreen> inviteTextInput = Optional.empty();
-    private Optional<TextInputScreen> addFriendTextInput = Optional.empty();
-    private String message = "Welcome to the game";
+    private final Optional<TextInputScreen> addFriendTextInput = Optional.empty();
+    private final MessageQueue messageQueue = new MessageQueue("Welcome to the Game");
 
     private Player player;
 
@@ -118,15 +120,7 @@ public class LobbyScreen implements Command, InputListener {
      * @param duration the duration in milliseconds
      */
     private void showMessage(String s, long duration) {
-        message = s;
-        new Timer().schedule(new TimerTask() {
-            @Override
-            public void run() {
-                if (message.equals(s)) {
-                    message = "";
-                }
-            }
-        }, duration);
+        messageQueue.addMessage(new Message(s, duration));
         render();
     }
 
@@ -135,7 +129,7 @@ public class LobbyScreen implements Command, InputListener {
      */
     private void reregisterListener() {
         player.getInputEventHandler().registerListener(this);
-        player.getEventHandler().unregisterListeners(this);
+        player.getEventHandler().registerListeners(this);
         render();
     }
 
@@ -209,7 +203,7 @@ public class LobbyScreen implements Command, InputListener {
 
             sb += renderPlayerCarousel() + "║";
 
-            sb += StringUtils.centerText(message, 44) +
+            sb += StringUtils.centerText(messageQueue.getCurrentText(), 44) +
                     "║\n\r" +
                     "║ ┏╺╺╺╺╺┓";
             //This monster is here to adjust the size of the Box that shows the game to the size of the name of the game
@@ -232,109 +226,11 @@ public class LobbyScreen implements Command, InputListener {
      * Show a list with all the players friends, options for each friend and the option to add a new friend
      */
     public void showFriendMenu() {
-        SelectScreen<String> friendSelectScreen = new SelectScreen<>(player);
-        List<String> friends = friendManager.getFriends(player);
-        for(String friend: friends){
-            String friendOption = friend;
-            if(playerManager.getPlayer(friend).isPresent()){
-                friendOption += " - Online";
-            }
-            friendSelectScreen.addOption(friendOption, friend);
-        }
-        List<FriendRequest> friendRequests = friendManager.getFriendRequests(player);
-        if(!friendRequests.isEmpty()){
-            friendSelectScreen.addOption("Friend Requests ("+friendRequests.size()+")", "-1");
-        }
-        friendSelectScreen.addOption("Add friend", "");
         unregisterListeners(this);
-        LobbyScreen lobbyScreen = this;
-        friendSelectScreen.selectOption(new Runnable() {
-            @Override
-            public void run() {
-                LoggerFactory.getLogger(this.getClass()).info("select screen ended");
-                reregisterListener();
-                if(friendSelectScreen.getSelected().isEmpty()){
-                    return;
-                }
-                if(friendSelectScreen.getSelected().get().isEmpty()){
-                    unregisterListeners(lobbyScreen);
-                    try {
-                        lobbyScreen.addFriendTextInput=  Optional.of(new TextInputScreen(() -> {
-                            friendManager.createFriendRequest(player, addFriendTextInput.get().getInput());
-                            reregisterListener();
-                        }, player, "Enter the name of your friend"));
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                    return;
-                }
-                if(friendSelectScreen.getSelected().get().equals("-1")){
-                    showFriendRequestMenu();
-                    return;
-                }
-
-                SelectScreen<String> friendOptionSelectScreen = new SelectScreen<>(player);
-
-                Optional<Player> selectedFriendPlayer = playerManager.getPlayer(friendSelectScreen.getSelected().get());
-                if(selectedFriendPlayer.isPresent()){
-                    Lobby selectedFriendLobby = selectedFriendPlayer.get().getLobby();
-                    if(selectedFriendLobby.getPlayers().size()<player.getLobby().getGame().getMaxLobbySize()&&!selectedFriendLobby.isPlaying()){
-                        friendOptionSelectScreen.addOption("Join Lobby", "join");
-                    }
-                }
-
-                friendOptionSelectScreen.addOption("Remove friend", "remove");
-
-                unregisterListeners(lobbyScreen);
-                friendOptionSelectScreen.selectOption("Options for "+friendSelectScreen.getSelected().get(), () -> {
-                    reregisterListener();
-                    if(friendOptionSelectScreen.getSelected().isEmpty()){
-                        showFriendMenu();
-                        return;
-                    }
-                    if(friendOptionSelectScreen.getSelected().get().equals("remove")){
-                        friendManager.removeFriend(player, friendSelectScreen.getSelected().get());
-                    }
-                    if(friendOptionSelectScreen.getSelected().get().equals("join")){
-                        joinLobby(selectedFriendPlayer);
-                    }
-                });
-
-            }
-        });
+        FriendMenuScreen friendMenuScreen = new FriendMenuScreen(player, friendManager, playerManager);
+        friendMenuScreen.show(this::reregisterListener);
     }
 
-    private void showFriendRequestMenu() {
-        List<FriendRequest> friendRequests = friendManager.getFriendRequests(player);
-        SelectScreen<FriendRequest> friendRequestSelectScreen = new SelectScreen<>(player);
-        for(FriendRequest friendRequest : friendRequests){
-            friendRequestSelectScreen.addOption(friendRequest.getSource(), friendRequest);
-        }
-        unregisterListeners(this);
-        friendRequestSelectScreen.selectOption("Select Friend Request", () -> {
-            reregisterListener();
-            if(friendRequestSelectScreen.getSelected().isEmpty()){
-                showFriendMenu();
-            }
-            SelectScreen<String> friendRequestOptionsScreen = new SelectScreen<>(player);
-            friendRequestOptionsScreen.addOption("Accept", "accept");
-            friendRequestOptionsScreen.addOption("Decline", "decline");
-            unregisterListeners(this);
-            friendRequestOptionsScreen.selectOption("Select option for Friend Request", () -> {
-                reregisterListener();
-                if(friendRequestOptionsScreen.getSelected().isEmpty()){
-                    showFriendRequestMenu();
-                }
-                if(friendRequestOptionsScreen.getSelected().get().equals("accept")){
-                    friendRequestSelectScreen.getSelected().get().accept();
-                }
-                if(friendRequestOptionsScreen.getSelected().get().equals("decline")){
-                    friendRequestSelectScreen.getSelected().get().decline();
-                }
-            });
-        });
-
-    }
 
     @Override
     public void destroy(ChannelSession channel) {
@@ -374,7 +270,7 @@ public class LobbyScreen implements Command, InputListener {
                     SelectScreen<Game> selectScreen = new SelectScreen<>(player);
                     gameManager.getGames().forEach(game -> selectScreen.addOption(game.getName(), game));
                     unregisterListeners(this);
-                    selectScreen.selectOption("Select gamemode", () -> {
+                    selectScreen.selectOption("Select game mode", () -> {
                         reregisterListener();
                         selectScreen.getSelected().ifPresent(game -> {
                             try {
@@ -464,6 +360,11 @@ public class LobbyScreen implements Command, InputListener {
     private void unregisterListeners(LobbyScreen listener) {
         player.getInputEventHandler().unregisterListener(this);
         player.getEventHandler().unregisterListeners(this);
+        try {
+            player.getEventHandler().registerListener(this, this.getClass().getMethod("onMessage", LobbyScreenMessageEvent.class));
+        } catch (NoSuchMethodException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     private void joinLobby(Optional<Player> invitedPlayer) {
@@ -488,5 +389,11 @@ public class LobbyScreen implements Command, InputListener {
     public void onUpdate(ScreenUpdateEvent event) {
         if(player.getLobby().isPlaying()) return;
         render();
+    }
+
+    @EventListener
+    public void onMessage(LobbyScreenMessageEvent event) {
+        if (player.getLobby().isPlaying()) return;
+        this.messageQueue.addMessage(event.getMessage());
     }
 }

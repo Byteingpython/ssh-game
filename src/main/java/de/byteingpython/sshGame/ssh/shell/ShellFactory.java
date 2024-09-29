@@ -3,13 +3,13 @@ package de.byteingpython.sshGame.ssh.shell;
 import de.byteingpython.sshGame.config.ConfigurationProvider;
 import de.byteingpython.sshGame.database.surreal.SurrealFriendManager;
 import de.byteingpython.sshGame.friends.FriendManager;
-import de.byteingpython.sshGame.games.*;
-import de.byteingpython.sshGame.games.test.TestGame;
-import de.byteingpython.sshGame.matchmaking.LocalMatchmaker;
-import de.byteingpython.sshGame.matchmaking.Matchmaker;
+import de.byteingpython.sshGame.games.GameManager;
+import de.byteingpython.sshGame.games.LocalGameMananger;
 import de.byteingpython.sshGame.games.tictactoe.TicTacToe;
 import de.byteingpython.sshGame.lobby.LobbyManager;
 import de.byteingpython.sshGame.lobby.LocalLobbyManager;
+import de.byteingpython.sshGame.matchmaking.LocalMatchmaker;
+import de.byteingpython.sshGame.matchmaking.Matchmaker;
 import de.byteingpython.sshGame.player.LocalPlayerManager;
 import de.byteingpython.sshGame.player.PlayerManager;
 import org.apache.sshd.server.channel.ChannelSession;
@@ -30,7 +30,7 @@ public class ShellFactory implements org.apache.sshd.server.shell.ShellFactory {
     public ShellFactory(ConfigurationProvider configurationProvider) {
         this.configurationProvider = configurationProvider;
         try {
-            surrealFriendManager = new SurrealFriendManager(configurationProvider);
+            surrealFriendManager = new SurrealFriendManager(configurationProvider, localPlayerManager);
         } catch (ConfigurationException e) {
             throw new RuntimeException(e);
         }
