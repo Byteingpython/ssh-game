@@ -403,13 +403,12 @@ public class LobbyScreen implements Command, InputListener {
 
     @EventListener
     public void onUpdate(ScreenUpdateEvent event) {
-        if(player.getLobby().isPlaying()) return;
+        if(player.getLobby().isPlaying()||!active) return;
         render();
     }
 
     @EventListener
     public void onMessage(LobbyScreenMessageEvent event) {
-        if (player.getLobby().isPlaying()) return;
         this.messageQueue.addMessage(event.getMessage());
     }
 

@@ -28,12 +28,11 @@ public class SurrealFriendManager implements FriendManager {
         this.configurationProvider = config;
         this.playerManager = playerManager;
         String sql = """
-                DEFINE TABLE IF NOT EXISTS friend_of TYPE RELATION IN user OUT user ENFORCED;
-                DEFINE TABLE IF NOT EXISTS friend_request IN user OUT user ENFORCED;
-                DEFINE INDEX IF NOT EXISTS unique_friend_requests ON TABLE friend_request COLUMNS in, out UNIQUE;
-                DEFINE FIELD IF NOT EXISTS key ON TABLE friend_of VALUE <string>array::sort([$this.in, $this.out]);
-                DEFINE INDEX IF NOT EXISTS only_one_friendship ON TABLE friend_of
-                """;
+         DEFINE TABLE friend_of TYPE RELATION IN user OUT user;
+         DEFINE TABLE friend_request TYPE RELATION IN user OUT user;
+         DEFINE INDEX unique_friend_requests ON TABLE friend_request COLUMNS in, out UNIQUE;
+         DEFINE FIELD key ON TABLE friend_of VALUE <string>array::sort([$this.in, $this.out]);
+         DEFINE INDEX only_one_friendship ON TABLE friend_of FIELDS key UNIQUE;""";
         driver.query(sql, Map.of(), Object.class);
     }
 

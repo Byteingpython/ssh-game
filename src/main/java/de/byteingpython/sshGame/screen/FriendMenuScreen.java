@@ -74,7 +74,11 @@ public class FriendMenuScreen {
             stringSelectScreen.addOption("Friend Requests (" + friendRequests.size() + ")", "-1");
         }
         for (String friend : friends) {
-            stringSelectScreen.addOption(friend, friend);
+            if(playerManager.getPlayer(friend).isPresent()){
+                stringSelectScreen.addOption(friend+" - Online", friend);
+            } else {
+                stringSelectScreen.addOption(friend, friend);
+            }
         }
         stringSelectScreen.addOption("Add Friend", "");
     }
