@@ -1,10 +1,13 @@
 package de.byteingpython.sshGame.ssh.shell;
 
+import com.surrealdb.driver.SyncSurrealDriver;
 import de.byteingpython.sshGame.config.ConfigurationProvider;
+import de.byteingpython.sshGame.database.surreal.ConfigSurrealDriver;
 import de.byteingpython.sshGame.database.surreal.SurrealFriendManager;
+import de.byteingpython.sshGame.database.surreal.SurrealStatisticsManager;
 import de.byteingpython.sshGame.friends.FriendManager;
-import de.byteingpython.sshGame.games.GameManager;
-import de.byteingpython.sshGame.games.LocalGameMananger;
+import de.byteingpython.sshGame.games.LocalGameManager;
+import de.byteingpython.sshGame.games.StatisticsManager;
 import de.byteingpython.sshGame.games.tictactoe.TicTacToe;
 import de.byteingpython.sshGame.lobby.LobbyManager;
 import de.byteingpython.sshGame.lobby.LocalLobbyManager;
@@ -21,7 +24,7 @@ public class ShellFactory implements org.apache.sshd.server.shell.ShellFactory {
 
     private final ConfigurationProvider configurationProvider;
     private final LobbyManager localLobbyManager = new LocalLobbyManager();
-    private final GameManager localGameManager = new LocalGameMananger(new TicTacToe());
+    private final LocalGameManager localGameManager;
     private final Matchmaker localMatchmaker = new LocalMatchmaker();
     private final PlayerManager localPlayerManager = new LocalPlayerManager();
     private final FriendManager surrealFriendManager;
@@ -30,7 +33,11 @@ public class ShellFactory implements org.apache.sshd.server.shell.ShellFactory {
     public ShellFactory(ConfigurationProvider configurationProvider) {
         this.configurationProvider = configurationProvider;
         try {
-            surrealFriendManager = new SurrealFriendManager(configurationProvider, localPlayerManager);
+            SyncSurrealDriver driver = new ConfigSurrealDriver(configurationProvider);
+            surrealFriendManager = new SurrealFriendManager(driver, configurationProvider, localPlayerManager);
+            localGameManager = new LocalGameManager();
+            StatisticsManager statisticsManager = new SurrealStatisticsManager(driver, localGameManager);
+            localGameManager.add(new TicTacToe(statisticsManager));
         } catch (ConfigurationException e) {
             throw new RuntimeException(e);
         }

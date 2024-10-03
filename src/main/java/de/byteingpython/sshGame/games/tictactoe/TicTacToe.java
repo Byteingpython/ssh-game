@@ -1,17 +1,21 @@
 package de.byteingpython.sshGame.games.tictactoe;
 
-import de.byteingpython.sshGame.event.InputListener;
 import de.byteingpython.sshGame.games.Game;
+import de.byteingpython.sshGame.games.StatisticsManager;
 import de.byteingpython.sshGame.lobby.Lobby;
 import de.byteingpython.sshGame.player.Player;
-import de.byteingpython.sshGame.utils.EscapeCodeUtils;
 import de.byteingpython.sshGame.utils.RandomBoolean;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
 public class TicTacToe implements Game {
+
+    private final StatisticsManager statisticsManager;
+
+    public TicTacToe(StatisticsManager statisticsManager) {
+        this.statisticsManager = statisticsManager;
+    }
 
     @Override
     public String getName() {
@@ -76,9 +80,9 @@ public class TicTacToe implements Game {
         }
         Board board;
         if (RandomBoolean.getRandomBoolean()) {
-            board = new Board(players.get(0), players.get(1));
+            board = new Board(players.get(0), players.get(1), statisticsManager, this);
         } else {
-            board = new Board(players.get(1), players.get(0));
+            board = new Board(players.get(1), players.get(0), statisticsManager, this);
         }
     }
 }

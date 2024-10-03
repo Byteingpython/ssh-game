@@ -1,6 +1,7 @@
 package de.byteingpython.sshGame.games.tictactoe;
 
 import de.byteingpython.sshGame.event.InputListener;
+import de.byteingpython.sshGame.games.StatisticsManager;
 import de.byteingpython.sshGame.lobby.Lobby;
 import de.byteingpython.sshGame.player.Player;
 import de.byteingpython.sshGame.utils.EscapeCodeUtils;
@@ -17,7 +18,12 @@ public class Board implements InputListener {
     private Player currentPlayer;
     private Player otherPlayer;
     private boolean end = false;
-    public Board(Player player1, Player player2) {
+    private final StatisticsManager statisticsManager;
+    private final TicTacToe ticTacToe;
+
+    public Board(Player player1, Player player2, StatisticsManager statisticsManager, TicTacToe ticTacToe) {
+        this.statisticsManager = statisticsManager;
+        this.ticTacToe = ticTacToe;
         players.put(player1, Sign.X);
         players.put(player2, Sign.O);
         currentPlayer = player1;
@@ -88,7 +94,7 @@ public class Board implements InputListener {
         if(currentPlayer==player) {
             sb.append(StringUtils.centerText("Your Turn", 17));
         } else {
-            sb.append(StringUtils.centerText(otherPlayer.getName()+"'s Turn", 17));
+            sb.append(StringUtils.centerText(currentPlayer.getName() + "'s Turn", 17));
         }
         sb.append("\n\r");
         for (int i = 0; i < 3; i++) {
@@ -145,9 +151,9 @@ public class Board implements InputListener {
 
         if (this.checkWin(input - 49)||this.isDraw()) {
             end = true;
-            getCurrentPlayer().getInputEventHandler().unregisterListener(this);
             renderAll();
             if (isDraw()) {
+                statisticsManager.registerDraw(getCurrentPlayer(), getOtherPlayer(), ticTacToe);
                 try {
                     getCurrentPlayer().getOutputStream().write(StringUtils.centerText("Its a tie", 17).getBytes(StandardCharsets.UTF_8));
                     getCurrentPlayer().getOutputStream().flush();
@@ -157,10 +163,11 @@ public class Board implements InputListener {
                     throw new RuntimeException(e);
                 }
             } else {
+                statisticsManager.registerWin(getOtherPlayer(), getCurrentPlayer(), ticTacToe);
                 try {
-                    getCurrentPlayer().getOutputStream().write(StringUtils.centerText("You won!", 17).getBytes(StandardCharsets.UTF_8));
+                    getCurrentPlayer().getOutputStream().write(StringUtils.centerText("You lost!", 17).getBytes(StandardCharsets.UTF_8));
                     getCurrentPlayer().getOutputStream().flush();
-                    getOtherPlayer().getOutputStream().write(StringUtils.centerText("You lost!", 17).getBytes(StandardCharsets.UTF_8));
+                    getOtherPlayer().getOutputStream().write(StringUtils.centerText("You won!", 17).getBytes(StandardCharsets.UTF_8));
                     getOtherPlayer().getOutputStream().flush();
                 } catch (IOException e) {
                     throw new RuntimeException(e);
@@ -182,6 +189,7 @@ public class Board implements InputListener {
     }
 
     private void endGame() {
+        getCurrentPlayer().getInputEventHandler().unregisterListener(this);
         Lobby lobby = getCurrentPlayer().getLobby();
         lobby.getEndCallback().run();
         if (getOtherPlayer().getLobby() != lobby) {

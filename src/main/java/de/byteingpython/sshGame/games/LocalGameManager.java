@@ -4,12 +4,16 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
-public class LocalGameMananger implements GameManager{
+public class LocalGameManager implements GameManager {
 
-    private List<Game> games = new ArrayList<>();
+    private final List<Game> games;
 
-    public LocalGameMananger(Game... games) {
-        this.games = List.of(games);
+    public LocalGameManager(Game... games) {
+        this.games = new ArrayList<>(List.of(games));
+    }
+
+    public void add(Game game) {
+        games.add(game);
     }
 
     @Override

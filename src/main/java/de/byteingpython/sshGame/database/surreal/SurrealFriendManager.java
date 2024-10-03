@@ -11,6 +11,7 @@ import de.byteingpython.sshGame.player.Player;
 import de.byteingpython.sshGame.player.PlayerManager;
 import de.byteingpython.sshGame.screen.LobbyScreenMessageEvent;
 import de.byteingpython.sshGame.utils.Message;
+import org.slf4j.LoggerFactory;
 
 import javax.naming.ConfigurationException;
 import java.util.ArrayList;
@@ -23,8 +24,8 @@ public class SurrealFriendManager implements FriendManager {
     private final ConfigurationProvider configurationProvider;
     private final PlayerManager playerManager;
 
-    public SurrealFriendManager(ConfigurationProvider config, PlayerManager playerManager) throws ConfigurationException {
-        driver = new ConfigSurrealDriver(config);
+    public SurrealFriendManager(SyncSurrealDriver driver, ConfigurationProvider config, PlayerManager playerManager) throws ConfigurationException {
+        this.driver = driver;
         this.configurationProvider = config;
         this.playerManager = playerManager;
         String sql = """
@@ -33,7 +34,11 @@ public class SurrealFriendManager implements FriendManager {
          DEFINE INDEX unique_friend_requests ON TABLE friend_request COLUMNS in, out UNIQUE;
          DEFINE FIELD key ON TABLE friend_of VALUE <string>array::sort([$this.in, $this.out]);
          DEFINE INDEX only_one_friendship ON TABLE friend_of FIELDS key UNIQUE;""";
-        driver.query(sql, Map.of(), Object.class);
+        try {
+            driver.query(sql, Map.of(), Object.class);
+        } catch (Exception e) {
+            LoggerFactory.getLogger(this.getClass()).info("Unable to set friend database schema");
+        }
     }
 
     @Override
