@@ -37,7 +37,7 @@ public class ShellFactory implements org.apache.sshd.server.shell.ShellFactory {
             surrealFriendManager = new SurrealFriendManager(driver, configurationProvider, localPlayerManager);
             localGameManager = new LocalGameManager();
             StatisticsManager statisticsManager = new SurrealStatisticsManager(driver, localGameManager);
-            localGameManager.add(new TicTacToe(statisticsManager));
+            localGameManager.add(new TicTacToe(statisticsManager, configurationProvider));
         } catch (ConfigurationException e) {
             throw new RuntimeException(e);
         }

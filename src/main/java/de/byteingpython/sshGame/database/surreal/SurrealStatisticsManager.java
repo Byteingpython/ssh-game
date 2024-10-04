@@ -85,7 +85,7 @@ public class SurrealStatisticsManager implements StatisticsManager<WengLingRatin
 
     @Override
     public RatingAlgo<WengLingRating> getRatingAlgo() {
-        return new WengLing(25f/6, 0.000001f);
+        return new WengLing(25f/3, 0.000001f);
     }
 
     @Override

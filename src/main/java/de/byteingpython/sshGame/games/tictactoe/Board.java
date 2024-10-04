@@ -138,6 +138,7 @@ public class Board implements InputListener {
     @Override
     public void onInput(int input) {
         if (input == 3) {
+            statisticsManager.registerWin(otherPlayer, currentPlayer, ticTacToe);
             endGame();
             return;
         }

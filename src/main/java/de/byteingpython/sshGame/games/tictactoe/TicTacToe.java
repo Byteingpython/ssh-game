@@ -1,20 +1,24 @@
 package de.byteingpython.sshGame.games.tictactoe;
 
+import de.byteingpython.sshGame.config.ConfigurationProvider;
 import de.byteingpython.sshGame.games.Game;
 import de.byteingpython.sshGame.games.StatisticsManager;
 import de.byteingpython.sshGame.lobby.Lobby;
 import de.byteingpython.sshGame.player.Player;
 import de.byteingpython.sshGame.utils.RandomBoolean;
 
+import java.io.Console;
 import java.util.ArrayList;
 import java.util.List;
 
 public class TicTacToe implements Game {
 
     private final StatisticsManager statisticsManager;
+    private final ConfigurationProvider configurationProvider;
 
-    public TicTacToe(StatisticsManager statisticsManager) {
+    public TicTacToe(StatisticsManager statisticsManager, ConfigurationProvider configurationProvider) {
         this.statisticsManager = statisticsManager;
+        this.configurationProvider = configurationProvider;
     }
 
     @Override
@@ -79,7 +83,13 @@ public class TicTacToe implements Game {
             lobby.setPlaying(true);
         }
         Board board;
-        if (RandomBoolean.getRandomBoolean()) {
+        float probability=0.5f;
+        if (configurationProvider.getBoolean("TIC_TAC_TOE_BIASED").orElse(true)) {
+            Object player0Rating = statisticsManager.getRating(players.get(0), this);
+            Object player1Rating = statisticsManager.getRating(players.get(1), this);
+            probability = 1f - statisticsManager.getRatingAlgo().predict(player0Rating, player1Rating);
+        }
+        if (RandomBoolean.getRandomBoolean(probability)) {
             board = new Board(players.get(0), players.get(1), statisticsManager, this);
         } else {
             board = new Board(players.get(1), players.get(0), statisticsManager, this);
