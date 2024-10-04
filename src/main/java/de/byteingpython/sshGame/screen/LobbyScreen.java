@@ -45,6 +45,12 @@ public class LobbyScreen implements Command, InputListener {
     private ExitCallback callback;
     private Optional<TextInputScreen> inviteTextInput = Optional.empty();
     private boolean active = true;
+    private final MessageQueue messageQueue = new MessageQueue("Welcome to the Game", this::render);
+    private final Thread shutdownHook = new Thread(()-> {
+        unregister();
+        exit();
+    });
+
 
     /**
      * Reregister the InputListener
@@ -54,7 +60,7 @@ public class LobbyScreen implements Command, InputListener {
         player.getInputEventHandler().registerListener(this);
         player.getEventHandler().registerListeners(this);
         render();
-    }    private final MessageQueue messageQueue = new MessageQueue("Welcome to the Game", this::render);
+    }
 
     /**
      * Assembles the Lobby screen from different string segments, clears the screen of the player and the sends the newly assembled screen
@@ -162,6 +168,7 @@ public class LobbyScreen implements Command, InputListener {
             return;
         }
         logger.trace("Starting lobby");
+        Runtime.getRuntime().addShutdownHook(shutdownHook);
         player.getInputEventHandler().registerListener(this);
         player.getEventHandler().registerListeners(this);
         render();
@@ -353,22 +360,16 @@ public class LobbyScreen implements Command, InputListener {
                 }
 
                 if(input==3){
-                    out.write(EscapeCodeUtils.SWITCH_TO_MAIN_SCREEN.getBytes(StandardCharsets.UTF_8));
-                    out.write(EscapeCodeUtils.SHOW_CURSOR.getBytes(StandardCharsets.UTF_8));
-                    out.flush();
-                    out.write("\nGoodbye\n".getBytes());
-                    out.flush();
-                    callback.onExit(-1, "Goodbye");
+                    Runtime.getRuntime().removeShutdownHook(shutdownHook);
+                    unregister();
+                    exit();
                     return;
                 }
+
                 //Leave the game
                 if (input == -1) {
-                    playerManager.unregisterPlayer(player);
-                    if (player.getLobby().getPlayers().size() <= 1) {
-                        lobbyManager.removeLobby(player.getLobby());
-                    }
-                    player.getLobby().removePlayer(player);
-                    unregisterListeners(this);
+                    Runtime.getRuntime().removeShutdownHook(shutdownHook);
+                    unregister();
                     return;
                 }
 
@@ -410,6 +411,28 @@ public class LobbyScreen implements Command, InputListener {
     @EventListener
     public void onMessage(LobbyScreenMessageEvent event) {
         this.messageQueue.addMessage(event.getMessage());
+    }
+
+    private void exit(){
+        try {
+            out.write(EscapeCodeUtils.SWITCH_TO_MAIN_SCREEN.getBytes(StandardCharsets.UTF_8));
+            out.write(EscapeCodeUtils.SHOW_CURSOR.getBytes(StandardCharsets.UTF_8));
+            out.flush();
+            out.write("\nGoodbye\n".getBytes());
+            out.flush();
+            callback.onExit(-1, "Goodbye");
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void unregister() {
+        playerManager.unregisterPlayer(player);
+        if (player.getLobby().getPlayers().size() <= 1) {
+            lobbyManager.removeLobby(player.getLobby());
+        }
+        player.getLobby().removePlayer(player);
+        unregisterListeners(this);
     }
 
 
