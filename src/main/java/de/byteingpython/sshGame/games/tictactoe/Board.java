@@ -1,9 +1,12 @@
 package de.byteingpython.sshGame.games.tictactoe;
 
+import de.byteingpython.sshGame.event.EventListener;
 import de.byteingpython.sshGame.event.InputListener;
+import de.byteingpython.sshGame.games.GameOutcome;
 import de.byteingpython.sshGame.games.StatisticsManager;
 import de.byteingpython.sshGame.lobby.Lobby;
 import de.byteingpython.sshGame.player.Player;
+import de.byteingpython.sshGame.ssh.shell.WindowChangeEvent;
 import de.byteingpython.sshGame.utils.EscapeCodeUtils;
 import de.byteingpython.sshGame.utils.StringUtils;
 
@@ -18,6 +21,7 @@ public class Board implements InputListener {
     private Player currentPlayer;
     private Player otherPlayer;
     private boolean end = false;
+    private boolean tie= false;
     private final StatisticsManager statisticsManager;
     private final TicTacToe ticTacToe;
 
@@ -29,6 +33,8 @@ public class Board implements InputListener {
         currentPlayer = player1;
         otherPlayer = player2;
         currentPlayer.getInputEventHandler().registerListener(this);
+        currentPlayer.getEventHandler().registerListeners(this);
+        otherPlayer.getEventHandler().registerListeners(this);
         renderAll();
     }
 
@@ -91,7 +97,10 @@ public class Board implements InputListener {
 
     public void render(Player player) {
         StringBuilder sb = new StringBuilder();
-        if(currentPlayer==player) {
+        if(end) {
+            sb.append(StringUtils.centerText("Game Ended", 17));
+        }
+        else if(currentPlayer==player) {
             sb.append(StringUtils.centerText("Your Turn", 17));
         } else {
             sb.append(StringUtils.centerText(currentPlayer.getName() + "'s Turn", 17));
@@ -123,9 +132,24 @@ public class Board implements InputListener {
                 sb.append("─────┼─────┼─────\n\r");
             }
         }
+        String message = null;
+        if(end) {
+            if(tie){
+                message="Its a tie";
+            } else {
+                if(otherPlayer==player){
+                    message="You won";
+                } else {
+                    message="You lost";
+                }
+            }
+        }
+        if(message!=null) {
+            sb.append(StringUtils.centerText(message, 17));
+        }
         try {
             player.getOutputStream().write(EscapeCodeUtils.CLEAR_SCREEN.getBytes());
-            player.getOutputStream().write(sb.toString().getBytes(StandardCharsets.UTF_8));
+            player.getOutputStream().write(StringUtils.centerInTerminal(StringUtils.fillOutSpaces(sb.toString()), player.getWindowSize()).getBytes(StandardCharsets.UTF_8));
             player.getOutputStream().flush();
         } catch (IOException ignored) {}
     }
@@ -155,24 +179,11 @@ public class Board implements InputListener {
             renderAll();
             if (isDraw()) {
                 statisticsManager.registerDraw(getCurrentPlayer(), getOtherPlayer(), ticTacToe);
-                try {
-                    getCurrentPlayer().getOutputStream().write(StringUtils.centerText("Its a tie", 17).getBytes(StandardCharsets.UTF_8));
-                    getCurrentPlayer().getOutputStream().flush();
-                    getOtherPlayer().getOutputStream().write(StringUtils.centerText("Its a tie", 17).getBytes(StandardCharsets.UTF_8));
-                    getOtherPlayer().getOutputStream().flush();
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
+                tie = true;
+                renderAll();
             } else {
                 statisticsManager.registerWin(getOtherPlayer(), getCurrentPlayer(), ticTacToe);
-                try {
-                    getCurrentPlayer().getOutputStream().write(StringUtils.centerText("You lost!", 17).getBytes(StandardCharsets.UTF_8));
-                    getCurrentPlayer().getOutputStream().flush();
-                    getOtherPlayer().getOutputStream().write(StringUtils.centerText("You won!", 17).getBytes(StandardCharsets.UTF_8));
-                    getOtherPlayer().getOutputStream().flush();
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
+                renderAll();
             }
             new Thread(() -> {
                 try {
@@ -196,5 +207,10 @@ public class Board implements InputListener {
         if (getOtherPlayer().getLobby() != lobby) {
             getOtherPlayer().getLobby().getEndCallback().run();
         }
+    }
+
+    @EventListener
+    public void onWindowChange(WindowChangeEvent event) {
+        renderAll();
     }
 }

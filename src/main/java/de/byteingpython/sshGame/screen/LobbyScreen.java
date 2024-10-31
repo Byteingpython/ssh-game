@@ -14,12 +14,17 @@ import de.byteingpython.sshGame.player.LocalPlayer;
 import de.byteingpython.sshGame.player.Player;
 import de.byteingpython.sshGame.player.PlayerManager;
 import de.byteingpython.sshGame.ssh.auth.CredentialAuthProvider;
+import de.byteingpython.sshGame.ssh.shell.WindowChangeEvent;
 import de.byteingpython.sshGame.utils.EscapeCodeUtils;
 import de.byteingpython.sshGame.utils.Message;
 import de.byteingpython.sshGame.utils.MessageQueue;
 import de.byteingpython.sshGame.utils.StringUtils;
+import org.apache.sshd.common.channel.Channel;
+import org.apache.sshd.common.channel.PtyMode;
 import org.apache.sshd.server.Environment;
 import org.apache.sshd.server.ExitCallback;
+import org.apache.sshd.server.Signal;
+import org.apache.sshd.server.SignalListener;
 import org.apache.sshd.server.channel.ChannelSession;
 import org.apache.sshd.server.command.Command;
 import org.slf4j.Logger;
@@ -30,6 +35,7 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 public class LobbyScreen implements Command, InputListener {
@@ -71,7 +77,7 @@ public class LobbyScreen implements Command, InputListener {
         if (player.getLobby().isPlaying() || !active) return;
         try {
             player.getOutputStream().write(EscapeCodeUtils.CLEAR_SCREEN.getBytes(StandardCharsets.UTF_8));
-            player.getOutputStream().flush();
+            player.getOutputStream().write(EscapeCodeUtils.HIDE_CURSOR.getBytes(StandardCharsets.UTF_8));
 
 
             String sb = "╔════════════════════════════════════════════╗\n\r" +
@@ -101,8 +107,7 @@ public class LobbyScreen implements Command, InputListener {
             sb += " ".repeat(33 - player.getLobby().getGame().getName().length()) + "┗" + "╺".repeat(player.getLobby().getGame().getName().length()) + "┛";
             sb += " ║\n\r" + "╚════════════════════════════════════════════╝";
 
-            player.getOutputStream().write(sb.getBytes(StandardCharsets.UTF_8));
-            player.getOutputStream().write(EscapeCodeUtils.HIDE_CURSOR.getBytes(StandardCharsets.UTF_8));
+            player.getOutputStream().write(StringUtils.centerInTerminal(sb, player.getWindowSize()).getBytes(StandardCharsets.UTF_8));
             player.getOutputStream().flush();
         } catch (IOException e) {
             throw new RuntimeException(e);
@@ -144,7 +149,7 @@ public class LobbyScreen implements Command, InputListener {
 
     @Override
     public void start(ChannelSession channel, Environment env) throws IOException {
-        this.player = new LocalPlayer(channel.getSession().getUsername(), out, err, in, this::render);
+        this.player = new LocalPlayer(channel.getSession().getUsername(), out, err, in, this::render, env);
         try {
             playerManager.registerPlayer(player);
         } catch (IllegalArgumentException e) {
@@ -268,7 +273,7 @@ public class LobbyScreen implements Command, InputListener {
 
     @Override
     public void destroy(ChannelSession channel) {
-        callback.onExit(0, "Goodbye");
+        callback.onExit(0, "");
     }
 
     @Override
@@ -427,7 +432,7 @@ public class LobbyScreen implements Command, InputListener {
             out.write(EscapeCodeUtils.SWITCH_TO_MAIN_SCREEN.getBytes(StandardCharsets.UTF_8));
             out.write(EscapeCodeUtils.SHOW_CURSOR.getBytes(StandardCharsets.UTF_8));
             out.flush();
-            out.write("\nGoodbye\n".getBytes());
+            out.write("\n\rGoodbye\n\r".getBytes());
             out.flush();
             callback.onExit(-1, "Goodbye");
         } catch (IOException e) {
@@ -444,5 +449,9 @@ public class LobbyScreen implements Command, InputListener {
         unregisterListeners(this);
     }
 
+    @EventListener
+    public void onWindowChange(WindowChangeEvent event) {
+        render();
+    }
 
 }
