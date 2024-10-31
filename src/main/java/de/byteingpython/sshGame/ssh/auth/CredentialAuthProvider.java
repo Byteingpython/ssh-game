@@ -1,5 +1,6 @@
 package de.byteingpython.sshGame.ssh.auth;
 
+import com.sshtools.common.ssh.components.SshPublicKey;
 import org.slf4j.Logger;
 import org.springframework.security.crypto.argon2.Argon2PasswordEncoder;
 
@@ -13,16 +14,13 @@ public abstract class CredentialAuthProvider implements CredentialProvider, Auth
     @Override
     public Optional<Boolean> authenticate(String username, String password) {
         Optional<String> hashedPassword = getHashedPassword(username);
-        if (hashedPassword.isPresent()) {
-            return Optional.of(argon2PasswordEncoder.matches(password, hashedPassword.get()));
-        }
-        return Optional.empty();
+        return hashedPassword.map(s -> argon2PasswordEncoder.matches(password, s));
     }
 
-    //TODO: Implement this method
     @Override
     public Optional<Boolean> authenticate(String username, PublicKey publicKey) {
-        return Optional.empty();
+        Optional<SshPublicKey> optionalKey = getPublicKey(username);
+        return optionalKey.map(sshPublicKey -> sshPublicKey.getJCEPublicKey().equals(publicKey));
     }
 
     @Override
@@ -33,5 +31,9 @@ public abstract class CredentialAuthProvider implements CredentialProvider, Auth
     @Override
     public void createUser(String username, String password) {
         createUserWithHashedPassword(username, argon2PasswordEncoder.encode(password));
+    }
+
+    public void updatePassword(String username, String password) {
+        updatePasswordHash(username, argon2PasswordEncoder.encode(password));
     }
 }

@@ -13,6 +13,7 @@ import de.byteingpython.sshGame.matchmaking.Matchmaker;
 import de.byteingpython.sshGame.player.LocalPlayer;
 import de.byteingpython.sshGame.player.Player;
 import de.byteingpython.sshGame.player.PlayerManager;
+import de.byteingpython.sshGame.ssh.auth.CredentialAuthProvider;
 import de.byteingpython.sshGame.utils.EscapeCodeUtils;
 import de.byteingpython.sshGame.utils.Message;
 import de.byteingpython.sshGame.utils.MessageQueue;
@@ -39,6 +40,7 @@ public class LobbyScreen implements Command, InputListener {
     private final PlayerManager playerManager;
     private final FriendManager friendManager;
     private final Matchmaker matchmaker;
+    private final CredentialAuthProvider credentialAuthProvider;
     private InputStream in;
     private OutputStream out;
     private OutputStream err;
@@ -109,12 +111,13 @@ public class LobbyScreen implements Command, InputListener {
 
     private Player player;
 
-    public LobbyScreen(LobbyManager lobbyManager, GameManager gameManager, Matchmaker matchmaker, PlayerManager playerManager, FriendManager friendManager) {
+    public LobbyScreen(LobbyManager lobbyManager, GameManager gameManager, Matchmaker matchmaker, PlayerManager playerManager, FriendManager friendManager, CredentialAuthProvider credentialAuthProvider) {
         this.lobbyManager = lobbyManager;
         this.gameManager = gameManager;
         this.matchmaker = matchmaker;
         this.playerManager = playerManager;
         this.friendManager = friendManager;
+        this.credentialAuthProvider = credentialAuthProvider;
     }
 
     @Override
@@ -357,6 +360,12 @@ public class LobbyScreen implements Command, InputListener {
                     }, player, "Input Player name"));
                     LoggerFactory.getLogger(this.getClass()).info("Started Text Input");
                     return;
+                }
+
+                // Open Settings screen
+                if(input == 19) {
+                    unregisterListeners(this);
+                    new SettingsScreen(player, credentialAuthProvider).show(this::reregisterListener);
                 }
 
                 if(input==3){

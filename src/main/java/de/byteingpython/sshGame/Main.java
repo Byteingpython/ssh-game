@@ -22,7 +22,7 @@ public class Main {
 
     public Main() throws ConfigurationException, IOException {
         config = new EnvConfigurationProvider();
-        sshServer = new SshGameServerBuilder(config).setAuthProvider(new SurrealCredentialProvider(config)).build();
+        sshServer = new SshGameServerBuilder(config, new SurrealCredentialProvider(config)).build();
         sshServer.start();
     }
 

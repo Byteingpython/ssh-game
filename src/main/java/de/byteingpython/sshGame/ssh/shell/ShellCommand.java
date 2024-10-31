@@ -7,6 +7,7 @@ import de.byteingpython.sshGame.lobby.LobbyManager;
 import de.byteingpython.sshGame.player.PlayerManager;
 import de.byteingpython.sshGame.matchmaking.Matchmaker;
 import de.byteingpython.sshGame.screen.LobbyScreen;
+import de.byteingpython.sshGame.ssh.auth.CredentialAuthProvider;
 import org.apache.sshd.common.io.IoInputStream;
 import org.apache.sshd.common.io.IoOutputStream;
 import org.apache.sshd.common.util.buffer.ByteArrayBuffer;
@@ -37,14 +38,16 @@ public class ShellCommand implements Command {
     private final Matchmaker matchmaker;
     private final PlayerManager playerManager;
     private final FriendManager friendManager;
+    private final CredentialAuthProvider credentialAuthProvider;
 
-    public ShellCommand(ConfigurationProvider configurationProvider, LobbyManager lobbyManager, PlayerManager playerManager, GameManager gameManager, Matchmaker matchmaker, FriendManager friendManager) {
+    public ShellCommand(ConfigurationProvider configurationProvider, LobbyManager lobbyManager, PlayerManager playerManager, GameManager gameManager, Matchmaker matchmaker, FriendManager friendManager, CredentialAuthProvider credentialAuthProvider) {
         this.configurationProvider = configurationProvider;
         this.lobbyManager = lobbyManager;
         this.gameManager = gameManager;
         this.matchmaker = matchmaker;
         this.playerManager = playerManager;
         this.friendManager = friendManager;
+        this.credentialAuthProvider = credentialAuthProvider;
     }
 
     @Override
@@ -92,7 +95,7 @@ public class ShellCommand implements Command {
                     try {
                         out.write("\033[H\033[2J".getBytes());
                         out.flush();
-                        LobbyScreen lobby = new LobbyScreen(lobbyManager, gameManager, matchmaker, playerManager, friendManager);
+                        LobbyScreen lobby = new LobbyScreen(lobbyManager, gameManager, matchmaker, playerManager, friendManager, credentialAuthProvider);
                         lobby.setInputStream(in);
                         lobby.setOutputStream(out);
                         lobby.setExitCallback(callback);

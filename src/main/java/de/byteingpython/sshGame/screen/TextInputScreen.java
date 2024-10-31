@@ -10,6 +10,7 @@ import java.nio.charset.StandardCharsets;
 public class TextInputScreen implements InputListener {
     private final Runnable endCallback;
     private final Player player;
+    private boolean passwordInput = false;
     private String inputText = "";
 
     public TextInputScreen(Runnable endCallback, Player player, String message) throws IOException {
@@ -66,7 +67,11 @@ public class TextInputScreen implements InputListener {
         }
         inputText += (char) input;
         try {
-            player.getOutputStream().write(input);
+            if(!passwordInput) {
+                player.getOutputStream().write(input);
+            } else {
+                player.getOutputStream().write(42);
+            }
             player.getOutputStream().flush();
         } catch (IOException ignored) {
         }
@@ -78,5 +83,9 @@ public class TextInputScreen implements InputListener {
 
     public void setInput(String input) {
         this.inputText = input;
+    }
+
+    public void setPasswordInput(boolean passwordInput) {
+        this.passwordInput = passwordInput;
     }
 }

@@ -15,6 +15,7 @@ import de.byteingpython.sshGame.matchmaking.LocalMatchmaker;
 import de.byteingpython.sshGame.matchmaking.Matchmaker;
 import de.byteingpython.sshGame.player.LocalPlayerManager;
 import de.byteingpython.sshGame.player.PlayerManager;
+import de.byteingpython.sshGame.ssh.auth.CredentialAuthProvider;
 import org.apache.sshd.server.channel.ChannelSession;
 import org.apache.sshd.server.command.Command;
 
@@ -27,11 +28,13 @@ public class ShellFactory implements org.apache.sshd.server.shell.ShellFactory {
     private final LocalGameManager localGameManager;
     private final Matchmaker localMatchmaker = new LocalMatchmaker();
     private final PlayerManager localPlayerManager = new LocalPlayerManager();
+    private final CredentialAuthProvider credentialAuthProvider;
     private final FriendManager surrealFriendManager;
 
 
-    public ShellFactory(ConfigurationProvider configurationProvider) {
+    public ShellFactory(ConfigurationProvider configurationProvider, CredentialAuthProvider credentialAuthProvider) {
         this.configurationProvider = configurationProvider;
+        this.credentialAuthProvider = credentialAuthProvider;
         try {
             SyncSurrealDriver driver = new ConfigSurrealDriver(configurationProvider);
             surrealFriendManager = new SurrealFriendManager(driver, configurationProvider, localPlayerManager);
@@ -46,6 +49,6 @@ public class ShellFactory implements org.apache.sshd.server.shell.ShellFactory {
 
     @Override
     public Command createShell(ChannelSession channel) {
-        return new ShellCommand(configurationProvider, localLobbyManager, localPlayerManager, localGameManager, localMatchmaker, surrealFriendManager);
+        return new ShellCommand(configurationProvider, localLobbyManager, localPlayerManager, localGameManager, localMatchmaker, surrealFriendManager, credentialAuthProvider);
     }
 }
