@@ -2,7 +2,6 @@ package de.byteingpython.sshGame.games.tictactoe;
 
 import de.byteingpython.sshGame.event.EventListener;
 import de.byteingpython.sshGame.event.InputListener;
-import de.byteingpython.sshGame.games.GameOutcome;
 import de.byteingpython.sshGame.games.StatisticsManager;
 import de.byteingpython.sshGame.lobby.Lobby;
 import de.byteingpython.sshGame.player.Player;
@@ -18,12 +17,12 @@ import java.util.Map;
 public class Board implements InputListener {
     private final int[] board = new int[9];
     private final Map<Player, Sign> players = new HashMap<>();
+    private final StatisticsManager statisticsManager;
+    private final TicTacToe ticTacToe;
     private Player currentPlayer;
     private Player otherPlayer;
     private boolean end = false;
-    private boolean tie= false;
-    private final StatisticsManager statisticsManager;
-    private final TicTacToe ticTacToe;
+    private boolean tie = false;
 
     public Board(Player player1, Player player2, StatisticsManager statisticsManager, TicTacToe ticTacToe) {
         this.statisticsManager = statisticsManager;
@@ -82,8 +81,8 @@ public class Board implements InputListener {
     }
 
     private boolean isDraw() {
-        for(int value:board){
-            if(value == 0) {
+        for (int value : board) {
+            if (value == 0) {
                 return false;
             }
         }
@@ -97,13 +96,12 @@ public class Board implements InputListener {
 
     public void render(Player player) {
         StringBuilder sb = new StringBuilder();
-        if(end) {
-            sb.append(StringUtils.centerText("Game Ended", 17));
-        }
-        else if(currentPlayer==player) {
-            sb.append(StringUtils.centerText("Your Turn", 17));
+        if (end) {
+            sb.append(StringUtils.centerText(player.getLocale().getString("game_ended"), 17));
+        } else if (currentPlayer == player) {
+            sb.append(StringUtils.centerText(player.getLocale().getString("your_turn"), 17));
         } else {
-            sb.append(StringUtils.centerText(currentPlayer.getName() + "'s Turn", 17));
+            sb.append(StringUtils.centerText(player.getLocale().getString("player_turn").replace("%p", currentPlayer.getName()), 17));
         }
         sb.append("\n\r");
         for (int i = 0; i < 3; i++) {
@@ -133,25 +131,26 @@ public class Board implements InputListener {
             }
         }
         String message = null;
-        if(end) {
-            if(tie){
-                message="Its a tie";
+        if (end) {
+            if (tie) {
+                message = player.getLocale().getString("tic_tac_toe_tie_message");
             } else {
-                if(otherPlayer==player){
-                    message="You won";
+                if (otherPlayer == player) {
+                    message = player.getLocale().getString("tic_tac_toe_win_message");
                 } else {
-                    message="You lost";
+                    message = player.getLocale().getString("tic_tac_toe_lose_message");
                 }
             }
         }
-        if(message!=null) {
+        if (message != null) {
             sb.append(StringUtils.centerText(message, 17));
         }
         try {
             player.getOutputStream().write(EscapeCodeUtils.CLEAR_SCREEN.getBytes());
             player.getOutputStream().write(StringUtils.centerInTerminal(StringUtils.fillOutSpaces(sb.toString()), player.getWindowSize()).getBytes(StandardCharsets.UTF_8));
             player.getOutputStream().flush();
-        } catch (IOException ignored) {}
+        } catch (IOException ignored) {
+        }
     }
 
     private void renderAll() {
@@ -174,7 +173,7 @@ public class Board implements InputListener {
         }
         this.setField(this.getCurrentPlayer(), input - 49);
 
-        if (this.checkWin(input - 49)||this.isDraw()) {
+        if (this.checkWin(input - 49) || this.isDraw()) {
             end = true;
             renderAll();
             if (isDraw()) {
@@ -202,6 +201,8 @@ public class Board implements InputListener {
 
     private void endGame() {
         getCurrentPlayer().getInputEventHandler().unregisterListener(this);
+        getOtherPlayer().getEventHandler().unregisterListeners(this);
+        getCurrentPlayer().getEventHandler().unregisterListeners(this);
         Lobby lobby = getCurrentPlayer().getLobby();
         lobby.getEndCallback().run();
         if (getOtherPlayer().getLobby() != lobby) {

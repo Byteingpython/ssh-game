@@ -4,6 +4,7 @@ import com.surrealdb.driver.SyncSurrealDriver;
 import de.byteingpython.sshGame.config.ConfigurationProvider;
 import de.byteingpython.sshGame.database.surreal.ConfigSurrealDriver;
 import de.byteingpython.sshGame.database.surreal.SurrealFriendManager;
+import de.byteingpython.sshGame.database.surreal.SurrealLocaleManager;
 import de.byteingpython.sshGame.database.surreal.SurrealStatisticsManager;
 import de.byteingpython.sshGame.friends.FriendManager;
 import de.byteingpython.sshGame.games.LocalGameManager;
@@ -27,7 +28,7 @@ public class ShellFactory implements org.apache.sshd.server.shell.ShellFactory {
     private final LobbyManager localLobbyManager = new LocalLobbyManager();
     private final LocalGameManager localGameManager;
     private final Matchmaker localMatchmaker = new LocalMatchmaker();
-    private final PlayerManager localPlayerManager = new LocalPlayerManager();
+    private final PlayerManager localPlayerManager;
     private final CredentialAuthProvider credentialAuthProvider;
     private final FriendManager surrealFriendManager;
 
@@ -37,10 +38,12 @@ public class ShellFactory implements org.apache.sshd.server.shell.ShellFactory {
         this.credentialAuthProvider = credentialAuthProvider;
         try {
             SyncSurrealDriver driver = new ConfigSurrealDriver(configurationProvider);
+            localPlayerManager = new LocalPlayerManager(new SurrealLocaleManager(driver));
             surrealFriendManager = new SurrealFriendManager(driver, configurationProvider, localPlayerManager);
             localGameManager = new LocalGameManager();
             StatisticsManager statisticsManager = new SurrealStatisticsManager(driver, localGameManager);
             localGameManager.add(new TicTacToe(statisticsManager, configurationProvider));
+
         } catch (ConfigurationException e) {
             throw new RuntimeException(e);
         }

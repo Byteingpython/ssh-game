@@ -1,7 +1,6 @@
 package de.byteingpython.sshGame.database.surreal;
 
 import com.sshtools.common.publickey.SshKeyUtils;
-import com.sshtools.common.ssh.components.SshPrivateKey;
 import com.sshtools.common.ssh.components.SshPublicKey;
 
 import java.io.IOException;
@@ -12,6 +11,7 @@ public class User {
     String passwordHash;
     String name;
     String publicKey;
+    String locale;
 
     public User(String name, String passwordHash) {
         this.name = name;
@@ -21,10 +21,14 @@ public class User {
     public User(String name, SshPublicKey publicKey) {
         this.name = name;
         try {
-            this.publicKey=SshKeyUtils.getFormattedKey(publicKey, "");
+            this.publicKey = SshKeyUtils.getFormattedKey(publicKey, "");
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    public String getLocale() {
+        return locale;
     }
 
     public String getPasswordHash() {
@@ -46,7 +50,7 @@ public class User {
     }
 
     public Optional<SshPublicKey> getPublicKey() {
-        if(publicKey==null) {
+        if (publicKey == null) {
             return Optional.empty();
         }
         try {

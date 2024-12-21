@@ -15,16 +15,16 @@ public class StreamReaderInputHandler implements InputEventHandler {
             try {
                 while (true) {
                     int input = player.getInputStream().read();
-                    for (InputListener listener : (ArrayList<InputListener>)listeners.clone()) {
+                    for (InputListener listener : (ArrayList<InputListener>) listeners.clone()) {
                         listener.onInput(input);
                     }
                     player.getEventHandler().handle(new InputEvent(player, input));
-                    if(input == -1){
+                    if (input == -1) {
                         break;
                     }
                 }
             } catch (IOException e) {
-                   throw new RuntimeException(e);
+                throw new RuntimeException(e);
             }
         });
         thread.start();

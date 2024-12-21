@@ -7,7 +7,6 @@ import de.byteingpython.sshGame.ssh.shell.ShellFactory;
 import de.byteingpython.sshGame.utils.throttling.ConfigThrottler;
 import de.byteingpython.sshGame.utils.throttling.Throttler;
 import org.apache.sshd.server.SshServer;
-import org.apache.sshd.server.keyprovider.SimpleGeneratorHostKeyProvider;
 
 public class SshGameServerBuilder {
     private final SshServer sshServer;
@@ -18,7 +17,8 @@ public class SshGameServerBuilder {
         this.sshServer = SshServer.setUpDefaultServer();
         this.sshServer.setPort(configurationProvider.getInt("SSH_PORT").orElse(22));
         this.sshServer.setShellFactory(new ShellFactory(configurationProvider, authProvider));
-        this.sshServer.setKeyPairProvider(new SimpleGeneratorHostKeyProvider());
+        //this.sshServer.setKeyPairProvider(new SimpleGeneratorHostKeyProvider());
+        this.sshServer.setKeyPairProvider(new ConfigKeyPairProvider(configurationProvider));
         if (configurationProvider.getString("SSH_PUBLIC_KEY").isPresent() && configurationProvider.getString("SSH_PRIVATE_KEY").isPresent()) {
             this.sshServer.setKeyPairProvider(new ConfigKeyPairProvider(configurationProvider));
         }

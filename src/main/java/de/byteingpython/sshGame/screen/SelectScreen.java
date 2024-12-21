@@ -14,15 +14,26 @@ import java.util.Optional;
 
 public class SelectScreen<T> implements InputListener {
     private final LinkedHashMap<String, T> options = new LinkedHashMap<>();
+    private final Player player;
     private Optional<Map.Entry<String, T>> selected = Optional.empty();
     private Runnable endRunnable;
-    private final Player player;
     private String message;
     private boolean escaped = false;
     private boolean running = false;
 
     public SelectScreen(Player player) {
         this.player = player;
+    }
+
+    private static <T, H> Optional<Integer> indexOfEntry(LinkedHashMap<H, T> options, Map.Entry<H, T> entry) {
+        int index = 0;
+        for (Map.Entry<H, T> current : options.entrySet()) {
+            if (entry.equals(current)) {
+                return Optional.of(index);
+            }
+            index++;
+        }
+        return Optional.empty();
     }
 
     public void addOption(String name, T value) {
@@ -42,7 +53,7 @@ public class SelectScreen<T> implements InputListener {
         this.message = message;
         this.endRunnable = endRunnable;
         running = true;
-        if(options.isEmpty()) {
+        if (options.isEmpty()) {
             throw new IllegalArgumentException("Options must not be empty");
         }
         selected = Optional.of(options.entrySet().iterator().next());
@@ -66,9 +77,8 @@ public class SelectScreen<T> implements InputListener {
             if (entry == selected.orElse(null)) {
                 player.getOutputStream().write(("> " + entry.getKey()).getBytes(StandardCharsets.UTF_8));
                 player.getOutputStream().write("\n\r".getBytes(StandardCharsets.UTF_8));
-            }
-            else {
-                player.getOutputStream().write((entry.getKey()+"\n\r").getBytes(StandardCharsets.UTF_8));
+            } else {
+                player.getOutputStream().write((entry.getKey() + "\n\r").getBytes(StandardCharsets.UTF_8));
             }
         }
         player.getOutputStream().flush();
@@ -83,16 +93,6 @@ public class SelectScreen<T> implements InputListener {
         int index = indexOfEntry(options, selected.orElseThrow()).orElseThrow();
         return (Map.Entry<String, T>) options.entrySet().toArray()[Math.floorMod(index - 1, options.size())];
     }
-    private static <T, H> Optional<Integer> indexOfEntry(LinkedHashMap<H, T> options, Map.Entry<H, T> entry) {
-        int index = 0;
-        for (Map.Entry<H, T> current : options.entrySet()) {
-            if (entry.equals(current)) {
-                return Optional.of(index);
-            }
-            index++;
-        }
-        return Optional.empty();
-    }
 
     @Override
     public void onInput(int input) {
@@ -100,7 +100,7 @@ public class SelectScreen<T> implements InputListener {
         if (options.isEmpty()) {
             return;
         }
-        if(escaped) {
+        if (escaped) {
             escaped = false;
             switch (input) {
                 case 66:
@@ -114,7 +114,7 @@ public class SelectScreen<T> implements InputListener {
         // 91 is the escape character for arrow keys
         if (input == 91) {
             escaped = true;
-        } else if (input==13){
+        } else if (input == 13) {
             running = false;
             player.getInputEventHandler().unregisterListener(this);
             endRunnable.run();

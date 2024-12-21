@@ -7,7 +7,6 @@ import de.byteingpython.sshGame.lobby.Lobby;
 import de.byteingpython.sshGame.player.Player;
 import de.byteingpython.sshGame.utils.RandomBoolean;
 
-import java.io.Console;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -19,6 +18,15 @@ public class TicTacToe implements Game {
     public TicTacToe(StatisticsManager statisticsManager, ConfigurationProvider configurationProvider) {
         this.statisticsManager = statisticsManager;
         this.configurationProvider = configurationProvider;
+    }
+
+    private static void endGame(List<Lobby> lobbies) {
+        for (Lobby lobby : lobbies) {
+            lobby.setPlaying(false);
+        }
+        for (Lobby lobby : lobbies) {
+            new Thread(() -> lobby.getEndCallback().run()).start();
+        }
     }
 
     @Override
@@ -39,15 +47,6 @@ public class TicTacToe implements Game {
     @Override
     public int getMaxLobbySize() {
         return 2;
-    }
-
-    private static void endGame(List<Lobby> lobbies) {
-        for (Lobby lobby : lobbies) {
-            lobby.setPlaying(false);
-        }
-        for (Lobby lobby : lobbies) {
-            new Thread(() -> lobby.getEndCallback().run()).start();
-        }
     }
 
     @Override
@@ -83,7 +82,7 @@ public class TicTacToe implements Game {
             lobby.setPlaying(true);
         }
         Board board;
-        float probability=0.5f;
+        float probability = 0.5f;
         if (configurationProvider.getBoolean("TIC_TAC_TOE_BIASED").orElse(true)) {
             Object player0Rating = statisticsManager.getRating(players.get(0), this);
             Object player1Rating = statisticsManager.getRating(players.get(1), this);

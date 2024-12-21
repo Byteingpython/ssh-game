@@ -19,12 +19,8 @@ import de.byteingpython.sshGame.utils.EscapeCodeUtils;
 import de.byteingpython.sshGame.utils.Message;
 import de.byteingpython.sshGame.utils.MessageQueue;
 import de.byteingpython.sshGame.utils.StringUtils;
-import org.apache.sshd.common.channel.Channel;
-import org.apache.sshd.common.channel.PtyMode;
 import org.apache.sshd.server.Environment;
 import org.apache.sshd.server.ExitCallback;
-import org.apache.sshd.server.Signal;
-import org.apache.sshd.server.SignalListener;
 import org.apache.sshd.server.channel.ChannelSession;
 import org.apache.sshd.server.command.Command;
 import org.slf4j.Logger;
@@ -35,7 +31,6 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
 
 public class LobbyScreen implements Command, InputListener {
@@ -53,12 +48,21 @@ public class LobbyScreen implements Command, InputListener {
     private ExitCallback callback;
     private Optional<TextInputScreen> inviteTextInput = Optional.empty();
     private boolean active = true;
-    private final MessageQueue messageQueue = new MessageQueue("Welcome to the Game", this::render);
-    private final Thread shutdownHook = new Thread(()-> {
+    private Player player;    private final MessageQueue messageQueue = new MessageQueue(this::render);
+    private final Thread shutdownHook = new Thread(() -> {
         unregister();
         exit();
     });
 
+
+    public LobbyScreen(LobbyManager lobbyManager, GameManager gameManager, Matchmaker matchmaker, PlayerManager playerManager, FriendManager friendManager, CredentialAuthProvider credentialAuthProvider) {
+        this.lobbyManager = lobbyManager;
+        this.gameManager = gameManager;
+        this.matchmaker = matchmaker;
+        this.playerManager = playerManager;
+        this.friendManager = friendManager;
+        this.credentialAuthProvider = credentialAuthProvider;
+    }
 
     /**
      * Reregister the InputListener
@@ -81,7 +85,7 @@ public class LobbyScreen implements Command, InputListener {
 
 
             String sb = "╔════════════════════════════════════════════╗\n\r" +
-                    "║ Settings ^s                     ^f Friends ║\n\r" +
+                    "║ " + StringUtils.alignToSides(player.getLocale().getString("settings") + " ^s", "^f " + player.getLocale().getString("friends"), 42) + " ║\n\r" +
                     "║" +
                     StringUtils.centerText(player.getLobby().getPlayers().size() + "/" + player.getLobby().getGame().getMaxLobbySize(), 44) +
                     "║\n\r" +
@@ -97,32 +101,28 @@ public class LobbyScreen implements Command, InputListener {
             sb += renderPlayerCarousel() + "║";
 
             sb += StringUtils.centerText(messageQueue.getCurrentText(), 44) +
-                    "║\n\r" +
-                    "║ ┏╺╺╺╺╺┓";
+                    "║\n\r";
+
+
             //This monster is here to adjust the size of the Box that shows the game to the size of the name of the game
-            sb += " ".repeat(33 - player.getLobby().getGame().getName().length()) + "┏" + "╺".repeat(player.getLobby().getGame().getName().length()) + "┓";
-            sb += " ║\n\r║ ╏queue╏^q";
-            sb += " ".repeat(29 - player.getLobby().getGame().getName().length());
-            sb += "^m╏" + player.getLobby().getGame().getName() + "╏ ║\n\r║ ┗╺╺╺╺╺┛";
-            sb += " ".repeat(33 - player.getLobby().getGame().getName().length()) + "┗" + "╺".repeat(player.getLobby().getGame().getName().length()) + "┛";
-            sb += " ║\n\r" + "╚════════════════════════════════════════════╝";
+            String queueText = player.getLocale().getString("queue");
+            String gameName = player.getLobby().getGame().getName();
+            sb += "║ " + StringUtils.alignToSides("┏" + "╺".repeat(queueText.length()) + "┓  ",
+                    "  ┏" + "╺".repeat(gameName.length()) + "┓",
+                    42) + " ║\n\r";
+            sb += "║ " + StringUtils.alignToSides("╏" + queueText + "╏^q",
+                    "^m╏" + gameName + "╏",
+                    42) + " ║\n\r";
+            sb += "║ " + StringUtils.alignToSides("┗" + "╺".repeat(queueText.length()) + "┛  ",
+                    "  ┗" + "╺".repeat(gameName.length()) + "┛",
+                    42) + " ║\n\r";
+            sb += "╚════════════════════════════════════════════╝";
 
             player.getOutputStream().write(StringUtils.centerInTerminal(sb, player.getWindowSize()).getBytes(StandardCharsets.UTF_8));
             player.getOutputStream().flush();
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
-    }
-
-    private Player player;
-
-    public LobbyScreen(LobbyManager lobbyManager, GameManager gameManager, Matchmaker matchmaker, PlayerManager playerManager, FriendManager friendManager, CredentialAuthProvider credentialAuthProvider) {
-        this.lobbyManager = lobbyManager;
-        this.gameManager = gameManager;
-        this.matchmaker = matchmaker;
-        this.playerManager = playerManager;
-        this.friendManager = friendManager;
-        this.credentialAuthProvider = credentialAuthProvider;
     }
 
     @Override
@@ -146,18 +146,18 @@ public class LobbyScreen implements Command, InputListener {
         this.out = out;
     }
 
-
     @Override
     public void start(ChannelSession channel, Environment env) throws IOException {
         this.player = new LocalPlayer(channel.getSession().getUsername(), out, err, in, this::render, env);
         try {
             playerManager.registerPlayer(player);
         } catch (IllegalArgumentException e) {
-            player.getOutputStream().write(("Unable to register Player. " + e.getMessage() + "\n\r").getBytes(StandardCharsets.UTF_8));
+            player.getOutputStream().write((player.getLocale().getString("registration_error") + e.getMessage() + "\n\r").getBytes(StandardCharsets.UTF_8));
             player.getOutputStream().flush();
             callback.onExit(0);
             return;
         }
+        messageQueue.setPlaceholder(player.getLocale().getString("welcome_message"));
         Lobby lobby = lobbyManager.createLobby();
         lobby.addPlayer(player);
 
@@ -220,7 +220,7 @@ public class LobbyScreen implements Command, InputListener {
             firstLine.append("  ╭───╮  ");
             secondLine.append("^j│ + │  ");
             thirdLine.append("  ╰───╯  ");
-            fourthLine.append("  Join   ");
+            fourthLine.append(StringUtils.centerText(player.getLocale().getString("join"), 9));
         }
         for (Player iterPlayer : player.getLobby().getPlayers()) {
             firstLine.append("  ╭───╮  ");
@@ -253,11 +253,11 @@ public class LobbyScreen implements Command, InputListener {
     @EventListener
     public void onFriendUpdate(FriendUpdateEvent event) {
         if (player.getLobby().isPlaying()) return;
-        String messageText = event.getFriendName() + " " + switch (event.getType()) {
-            case ADDED -> "added you as a friend";
-            case REMOVED -> "removed you as a friend";
-            case REQUESTED -> "has sent you a friend request";
-        };
+        String messageText = event.getFriendName() + " " + player.getLocale().getString(switch (event.getType()) {
+            case ADDED -> "friend_added";
+            case REMOVED -> "friend_removed";
+            case REQUESTED -> "friend_requested";
+        });
         messageQueue.addMessage(new Message(messageText, 2000));
     }
 
@@ -270,7 +270,6 @@ public class LobbyScreen implements Command, InputListener {
         friendMenuScreen.show(this::reregisterListener);
     }
 
-
     @Override
     public void destroy(ChannelSession channel) {
         callback.onExit(0, "");
@@ -280,11 +279,7 @@ public class LobbyScreen implements Command, InputListener {
     public void onInput(int input) {
         if (!player.getLobby().isPlaying()) {
             try {
-                logger.info("Received input: " + input);
-                if (input == 19) {
-                    out.write("-> Settings".getBytes());
-                    out.flush();
-                }
+                logger.info("Received input: {}", input);
                 //Show a List with friends and offer Options
                 if (input == 6) {
                     showFriendMenu();
@@ -294,9 +289,14 @@ public class LobbyScreen implements Command, InputListener {
                 //Start matchmaking
                 if (input == 17) {
                     try {
-                        matchmaker.matchmake(player.getLobby());
-                        if (!player.getLobby().isPlaying()) {
-                            showMessage("Matchmaking started", 2999);
+                        if (!matchmaker.isMatchmaking(player.getLobby())) {
+                            matchmaker.matchmake(player.getLobby());
+                            if (!player.getLobby().isPlaying()) {
+                                showMessage(player.getLocale().getString("matchmaking_start"), 2999);
+                            }
+                        } else {
+                            matchmaker.cancelMatchmaking(player.getLobby());
+                            showMessage(player.getLocale().getString("matchmaking_cancel"), 2999);
                         }
                     } catch (IllegalArgumentException e) {
                         showMessage(e.getMessage(), 2999);
@@ -309,7 +309,7 @@ public class LobbyScreen implements Command, InputListener {
                     SelectScreen<Game> selectScreen = new SelectScreen<>(player);
                     gameManager.getGames().forEach(game -> selectScreen.addOption(game.getName(), game));
                     unregisterListeners(this);
-                    selectScreen.selectOption("Select game mode", () -> {
+                    selectScreen.selectOption(player.getLocale().getString("select_gamemode"), () -> {
                         reregisterListener();
                         selectScreen.getSelected().ifPresent(game -> {
                             try {
@@ -338,7 +338,7 @@ public class LobbyScreen implements Command, InputListener {
                         newLobby.setGame(game);
                     }
                     //Notify the other players that a rerender is necessary
-                    for(Player player:oldLobby.getPlayers()){
+                    for (Player player : oldLobby.getPlayers()) {
                         player.getEventHandler().handle(new ScreenUpdateEvent());
                     }
                 }
@@ -354,26 +354,25 @@ public class LobbyScreen implements Command, InputListener {
                             Optional<Player> invitedPlayer = playerManager.getPlayer(inviteTextInput.get().getInput());
                             inviteTextInput = Optional.empty();
                             if (invitedPlayer.isEmpty()) {
-                                showMessage("This player does not exist", 3000);
+                                showMessage(player.getLocale().getString("player_not_exist"), 3000);
                                 return;
                             }
                             if (invitedPlayer.get() == player) {
-                                showMessage("Nice try! Nope this isn't that easy to fool", 3000);
+                                showMessage(player.getLocale().getString("fraud_attempt"), 3000);
                             }
                             joinLobby(invitedPlayer);
                         }
-                    }, player, "Input Player name"));
-                    LoggerFactory.getLogger(this.getClass()).info("Started Text Input");
+                    }, player, player.getLocale().getString("invite_title")));
                     return;
                 }
 
                 // Open Settings screen
-                if(input == 19) {
+                if (input == 19) {
                     unregisterListeners(this);
-                    new SettingsScreen(player, credentialAuthProvider).show(this::reregisterListener);
+                    new SettingsScreen(player, credentialAuthProvider, playerManager.getLocaleManager()).show(this::reregisterListener);
                 }
 
-                if(input==3){
+                if (input == 3) {
                     Runtime.getRuntime().removeShutdownHook(shutdownHook);
                     unregister();
                     exit();
@@ -396,14 +395,12 @@ public class LobbyScreen implements Command, InputListener {
         }
     }
 
-
-
     private void joinLobby(Optional<Player> invitedPlayer) {
         Lobby originalLobby = player.getLobby();
         player.getLobby().removePlayer(player);
         try {
             invitedPlayer.get().getLobby().addPlayer(player);
-            if(originalLobby.getPlayers().isEmpty()){
+            if (originalLobby.getPlayers().isEmpty()) {
                 lobbyManager.removeLobby(originalLobby);
             }
         } catch (IllegalStateException e) {
@@ -411,14 +408,14 @@ public class LobbyScreen implements Command, InputListener {
             originalLobby.addPlayer(player);
         }
         // Update all  the players screens so the new player is displayed
-        for(Player lobbyPlayer:player.getLobby().getPlayers()){
+        for (Player lobbyPlayer : player.getLobby().getPlayers()) {
             lobbyPlayer.getEventHandler().handle(new ScreenUpdateEvent());
         }
     }
 
     @EventListener
     public void onUpdate(ScreenUpdateEvent event) {
-        if(player.getLobby().isPlaying()||!active) return;
+        if (player.getLobby().isPlaying() || !active) return;
         render();
     }
 
@@ -427,14 +424,14 @@ public class LobbyScreen implements Command, InputListener {
         this.messageQueue.addMessage(event.getMessage());
     }
 
-    private void exit(){
+    private void exit() {
         try {
             out.write(EscapeCodeUtils.SWITCH_TO_MAIN_SCREEN.getBytes(StandardCharsets.UTF_8));
             out.write(EscapeCodeUtils.SHOW_CURSOR.getBytes(StandardCharsets.UTF_8));
             out.flush();
-            out.write("\n\rGoodbye\n\r".getBytes());
+            out.write(("\n\r" + player.getLocale().getString("exit_message") + "\n\r").getBytes());
             out.flush();
-            callback.onExit(-1, "Goodbye");
+            callback.onExit(-1, player.getLocale().getString("exit_message"));
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
@@ -453,5 +450,7 @@ public class LobbyScreen implements Command, InputListener {
     public void onWindowChange(WindowChangeEvent event) {
         render();
     }
+
+
 
 }

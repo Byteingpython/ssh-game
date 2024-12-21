@@ -53,7 +53,7 @@ public class TestGame implements Game {
 
     @Override
     public void startGame(List<Lobby> lobbies) {
-        for(Lobby lobby:lobbies){
+        for (Lobby lobby : lobbies) {
             lobby.getEndCallback().run();
         }
     }

@@ -4,11 +4,12 @@ import java.util.*;
 
 public class LocalLobbyManager implements LobbyManager {
 
-    private Map<UUID, Lobby> lobbies;
+    private final Map<UUID, Lobby> lobbies;
 
     public LocalLobbyManager() {
         this.lobbies = new HashMap<>();
     }
+
     @Override
     public Lobby createLobby() {
         Lobby newLobby = new LocalLobby();

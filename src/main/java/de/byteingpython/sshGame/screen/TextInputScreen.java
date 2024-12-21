@@ -48,7 +48,7 @@ public class TextInputScreen implements InputListener {
                 return;
             }
         }
-        if (input == 13||input == 3) {
+        if (input == 13 || input == 3) {
             player.getInputEventHandler().unregisterListener(this);
             try {
                 player.getOutputStream().write(EscapeCodeUtils.HIDE_CURSOR.getBytes(StandardCharsets.UTF_8));
@@ -59,15 +59,15 @@ public class TextInputScreen implements InputListener {
             endCallback.run();
             return;
         }
-        if(input< 21) {
+        if (input < 21) {
             return;
         }
-        if(input>126){
+        if (input > 126) {
             return;
         }
         inputText += (char) input;
         try {
-            if(!passwordInput) {
+            if (!passwordInput) {
                 player.getOutputStream().write(input);
             } else {
                 player.getOutputStream().write(42);

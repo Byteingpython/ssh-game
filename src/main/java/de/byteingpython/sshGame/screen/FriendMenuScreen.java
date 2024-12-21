@@ -9,7 +9,6 @@ import de.byteingpython.sshGame.lobby.Lobby;
 import de.byteingpython.sshGame.player.Player;
 import de.byteingpython.sshGame.player.PlayerManager;
 import de.byteingpython.sshGame.utils.Message;
-import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.util.List;
@@ -71,16 +70,16 @@ public class FriendMenuScreen {
         List<FriendRequest> friendRequests = friendManager.getFriendRequests(player);
         stringSelectScreen.clearOptions();
         if (!friendRequests.isEmpty()) {
-            stringSelectScreen.addOption("Friend Requests (" + friendRequests.size() + ")", "-1");
+            stringSelectScreen.addOption(player.getLocale().getString("friend_requests") + " (" + friendRequests.size() + ")", "-1");
         }
         for (String friend : friends) {
-            if(playerManager.getPlayer(friend).isPresent()){
-                stringSelectScreen.addOption(friend+" - Online", friend);
+            if (playerManager.getPlayer(friend).isPresent()) {
+                stringSelectScreen.addOption(friend + " - " + player.getLocale().getString("online"), friend);
             } else {
                 stringSelectScreen.addOption(friend, friend);
             }
         }
-        stringSelectScreen.addOption("Add Friend", "");
+        stringSelectScreen.addOption(player.getLocale().getString("add_friend"), "");
     }
 
     private void updateFriendRequestScreen() {
@@ -95,7 +94,7 @@ public class FriendMenuScreen {
         friendMenuStage = FriendMenuStage.FRIEND_LIST;
         updateFriendSelectScreen();
         CountDownLatch latch = new CountDownLatch(1);
-        stringSelectScreen.selectOption("Friend List", latch::countDown);
+        stringSelectScreen.selectOption(player.getLocale().getString("friend_list"), latch::countDown);
         try {
             latch.await();
         } catch (InterruptedException e) {
@@ -108,15 +107,14 @@ public class FriendMenuScreen {
         if (stringSelectScreen.getSelected().get().isEmpty()) {
             try {
                 CountDownLatch textLatch = new CountDownLatch(1);
-                TextInputScreen textInputScreen = new TextInputScreen(textLatch::countDown, player, "Type the name of the player you want to add");
-                LoggerFactory.getLogger(this.getClass()).info("Waiting for text input");
+                TextInputScreen textInputScreen = new TextInputScreen(textLatch::countDown, player, player.getLocale().getString("friend_invite_input_title"));
                 textLatch.await();
                 if (textInputScreen.getInput().isEmpty()) {
                     showFriendSelectScreen();
                 }
                 String friendName = textInputScreen.getInput();
                 if (friendName.equals(player.getName())) {
-                    player.getEventHandler().handle(new LobbyScreenMessageEvent(new Message("You cant be friends with yourself", 2000)));
+                    player.getEventHandler().handle(new LobbyScreenMessageEvent(new Message(player.getLocale().getString("friend_request_self"), 2000)));
                     return;
                 }
                 friendManager.createFriendRequest(player, friendName);
@@ -136,7 +134,7 @@ public class FriendMenuScreen {
         friendMenuStage = FriendMenuStage.REQUEST_LIST;
         updateFriendRequestScreen();
         CountDownLatch latch = new CountDownLatch(1);
-        friendRequestSelectScreen.selectOption("Friend Requests", latch::countDown);
+        friendRequestSelectScreen.selectOption(player.getLocale().getString("friend_requests"), latch::countDown);
         try {
             latch.await();
         } catch (InterruptedException e) {
@@ -153,9 +151,9 @@ public class FriendMenuScreen {
         this.selectedFriend = Optional.of(friend);
         this.stringSelectScreen.clearOptions();
         if (playerManager.getPlayer(friend).isPresent()) {
-            stringSelectScreen.addOption("Join", "join");
+            stringSelectScreen.addOption(player.getLocale().getString("join"), "join");
         }
-        stringSelectScreen.addOption("Remove", "remove");
+        stringSelectScreen.addOption(player.getLocale().getString("remove"), "remove");
         CountDownLatch latch = new CountDownLatch(1);
         stringSelectScreen.selectOption(friend, latch::countDown);
         try {
@@ -194,8 +192,8 @@ public class FriendMenuScreen {
         this.friendMenuStage = FriendMenuStage.REQUEST_OPTIONS;
         this.selectedFriendRequest = Optional.of(friendRequest);
         this.stringSelectScreen.clearOptions();
-        stringSelectScreen.addOption("Accept", "accept");
-        stringSelectScreen.addOption("Reject", "reject");
+        stringSelectScreen.addOption(player.getLocale().getString("accept"), "accept");
+        stringSelectScreen.addOption(player.getLocale().getString("reject"), "reject");
         CountDownLatch latch = new CountDownLatch(1);
         stringSelectScreen.selectOption(friendRequest.getSource(), latch::countDown);
         try {

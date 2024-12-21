@@ -5,7 +5,8 @@ import java.util.List;
 
 public class FriendList {
     List<String> friends;
-    public FriendList(){
+
+    public FriendList() {
         friends = new ArrayList<>();
     }
 

@@ -85,13 +85,13 @@ public class SurrealStatisticsManager implements StatisticsManager<WengLingRatin
 
     @Override
     public RatingAlgo<WengLingRating> getRatingAlgo() {
-        return new WengLing(25f/3, 0.000001f);
+        return new WengLing(25f / 3, 0.000001f);
     }
 
     @Override
     public WengLingRating getRating(Player player, Game game) {
         List<QueryResult<WengLingRating>> results = this.driver.query("SELECT rating, uncertainty FROM rating WHERE game=$game && user.name=$player", Map.of("game", game.getId(), "player", player.getName()), WengLingRating.class);
-        if(results.get(0).getResult().isEmpty()){
+        if (results.get(0).getResult().isEmpty()) {
             createRating(player, game);
             return getRatingAlgo().generateRating();
         }
@@ -99,7 +99,7 @@ public class SurrealStatisticsManager implements StatisticsManager<WengLingRatin
     }
 
     public void updateRating(Player player, WengLingRating rating, Game game) {
-        this.driver.query("UPDATE rating SET rating = <float> $rating, uncertainty = <float> $uncertainty WHERE user.name=$player && game=$game", Map.of("rating", String.valueOf(rating.rating()), "uncertainty",  String.valueOf(rating.uncertainty()), "game", game.getId(), "player", player.getName()), Object.class);
+        this.driver.query("UPDATE rating SET rating = <float> $rating, uncertainty = <float> $uncertainty WHERE user.name=$player && game=$game", Map.of("rating", String.valueOf(rating.rating()), "uncertainty", String.valueOf(rating.uncertainty()), "game", game.getId(), "player", player.getName()), Object.class);
     }
 
     private List<GameStats> convertToGameStats(QueryResult<SurrealGameResult> result, GameOutcome gameOutcome) {
@@ -122,7 +122,7 @@ public class SurrealStatisticsManager implements StatisticsManager<WengLingRatin
     }
 
     private void createRating(Player player, Game game) {
-        WengLingRating rating=getRatingAlgo().generateRating();
+        WengLingRating rating = getRatingAlgo().generateRating();
         this.driver.query("CREATE rating SET rating = <float> $rating, uncertainty = <float> $uncertainty, game=$game, user=array::at((SELECT VALUE id FROM user WHERE name=$player), 0);", Map.of("rating", String.valueOf(rating.rating()), "uncertainty", String.valueOf(rating.uncertainty()), "game", game.getId(), "player", player.getName()), Object.class);
     }
 

@@ -23,8 +23,8 @@ public class LocalGameManager implements GameManager {
 
     @Override
     public Optional<Game> getGame(String id) {
-        for(Game game:games){
-            if(game.getId().equals(id)){
+        for (Game game : games) {
+            if (game.getId().equals(id)) {
                 return Optional.of(game);
             }
         }

@@ -3,8 +3,8 @@ package de.byteingpython.sshGame.matchmaking.openSkill;
 import java.util.Objects;
 
 public final class WengLingRating {
-    private float rating;
-    private float uncertainty;
+    private final float rating;
+    private final float uncertainty;
 
     public WengLingRating(float rating, float uncertainty) {
         this.rating = rating;

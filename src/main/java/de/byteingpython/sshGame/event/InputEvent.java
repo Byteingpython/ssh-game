@@ -16,6 +16,7 @@ public class InputEvent implements Event {
 
     /**
      * Get the player that pressed the input
+     *
      * @return The player that pressed the input
      */
     public Player getPlayer() {
@@ -24,6 +25,7 @@ public class InputEvent implements Event {
 
     /**
      * Get the input as an ascii integer
+     *
      * @return The input
      */
     public int getInput() {

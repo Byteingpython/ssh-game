@@ -23,11 +23,11 @@ public class SurrealFriendRequest extends FriendRequest {
     @Override
     public void accept() {
         String sql = """
-            BEGIN TRANSACTION;
-            RELATE (SELECT VALUE id FROM user WHERE name=$target)->friend_of->(SELECT VALUE id FROM user WHERE name=$source);
-            DELETE friend_request WHERE (in.name=$source && out.name=$target)||(in.name=$target && out.name=$source);
-            COMMIT TRANSACTION;
-        """;
+                    BEGIN TRANSACTION;
+                    RELATE (SELECT VALUE id FROM user WHERE name=$target)->friend_of->(SELECT VALUE id FROM user WHERE name=$source);
+                    DELETE friend_request WHERE (in.name=$source && out.name=$target)||(in.name=$target && out.name=$source);
+                    COMMIT TRANSACTION;
+                """;
         driver.query(sql, Map.of("source", getSource(), "target", getTarget()), Object.class);
         Optional<Player> sourcePlayer = playerManager.getPlayer(getSource());
         sourcePlayer.ifPresent(player -> player.getEventHandler().handle(new FriendUpdateEvent(getTarget(), FriendUpdateEventType.ADDED)));

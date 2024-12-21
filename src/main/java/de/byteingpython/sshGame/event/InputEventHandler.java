@@ -1,6 +1,7 @@
 package de.byteingpython.sshGame.event;
 
 public interface InputEventHandler {
-    public void registerListener(InputListener listener);
-    public void unregisterListener(InputListener listener);
+    void registerListener(InputListener listener);
+
+    void unregisterListener(InputListener listener);
 }

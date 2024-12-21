@@ -11,7 +11,9 @@ import org.apache.sshd.server.Signal;
 
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Locale;
 import java.util.Map;
+import java.util.ResourceBundle;
 
 public class LocalPlayer implements Player {
     private final String name;
@@ -22,6 +24,7 @@ public class LocalPlayer implements Player {
     private final InputEventHandler inputEventHandler;
     private final EventHandler eventHandler;
     private final Environment environment;
+    private ResourceBundle locale;
     private Lobby lobby;
 
     public LocalPlayer(String name, OutputStream outputStream, OutputStream errorStream, InputStream inputStream, Runnable endCallback, Environment environment) {
@@ -35,10 +38,11 @@ public class LocalPlayer implements Player {
         this.inputEventHandler = new StreamReaderInputHandler(this);
         // Handle terminal size changes
         environment.addSignalListener((channel, signal) -> {
-            if(signal!= Signal.WINCH) return;
+            if (signal != Signal.WINCH) return;
             Map<String, String> env = environment.getEnv();
             eventHandler.handle(new WindowChangeEvent(getWindowSize()));
         });
+        locale = ResourceBundle.getBundle("translations", Locale.GERMAN);
     }
 
     @Override
@@ -77,6 +81,16 @@ public class LocalPlayer implements Player {
         int width = Integer.parseInt(env.get(Environment.ENV_COLUMNS));
         int height = Integer.parseInt(env.get(Environment.ENV_LINES));
         return new WindowSize(width, height);
+    }
+
+    @Override
+    public ResourceBundle getLocale() {
+        return locale;
+    }
+
+    @Override
+    public void setLocale(Locale locale) {
+        this.locale = ResourceBundle.getBundle("translations", locale);
     }
 
     @Override

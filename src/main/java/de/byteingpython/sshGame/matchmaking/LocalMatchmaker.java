@@ -53,7 +53,7 @@ public class LocalMatchmaker implements Matchmaker {
         lobby.getGame().startGame(selectedLobbies);
     }
 
-    private boolean isMatchmaking(Lobby lobby, Game game){
+    private boolean isMatchmaking(Lobby lobby, Game game) {
         return getLobbiesForGame(game).contains(lobby);
     }
 
@@ -75,7 +75,7 @@ public class LocalMatchmaker implements Matchmaker {
 
     private void addLobbyForGame(Game game, Lobby lobby) {
         List<Lobby> lobbiesForGame = lobbies.get(game.getId());
-        if(lobbiesForGame.contains(lobby)){
+        if (lobbiesForGame.contains(lobby)) {
             throw new IllegalArgumentException("Lobby is already in matchmaking");
         }
         lobbiesForGame.add(lobby);
@@ -85,5 +85,15 @@ public class LocalMatchmaker implements Matchmaker {
     @Override
     public void cancelMatchmaking(Lobby lobby) {
         removeLobbyForGame(lobby.getGame(), lobby);
+    }
+
+    @Override
+    public boolean isMatchmaking(Lobby lobby) {
+        for (List<Lobby> entry : lobbies.values()) {
+            if (entry.contains(lobby)) {
+                return true;
+            }
+        }
+        return false;
     }
 }

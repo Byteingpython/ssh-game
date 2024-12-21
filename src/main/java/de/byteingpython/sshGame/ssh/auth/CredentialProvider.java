@@ -2,7 +2,6 @@ package de.byteingpython.sshGame.ssh.auth;
 
 import com.sshtools.common.ssh.components.SshPublicKey;
 
-import java.security.PublicKey;
 import java.util.Optional;
 
 public interface CredentialProvider {

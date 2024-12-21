@@ -29,11 +29,11 @@ public class SurrealFriendManager implements FriendManager {
         this.configurationProvider = config;
         this.playerManager = playerManager;
         String sql = """
-         DEFINE TABLE friend_of TYPE RELATION IN user OUT user;
-         DEFINE TABLE friend_request TYPE RELATION IN user OUT user;
-         DEFINE INDEX unique_friend_requests ON TABLE friend_request COLUMNS in, out UNIQUE;
-         DEFINE FIELD key ON TABLE friend_of VALUE <string>array::sort([$this.in, $this.out]);
-         DEFINE INDEX only_one_friendship ON TABLE friend_of FIELDS key UNIQUE;""";
+                DEFINE TABLE friend_of TYPE RELATION IN user OUT user;
+                DEFINE TABLE friend_request TYPE RELATION IN user OUT user;
+                DEFINE INDEX unique_friend_requests ON TABLE friend_request COLUMNS in, out UNIQUE;
+                DEFINE FIELD key ON TABLE friend_of VALUE <string>array::sort([$this.in, $this.out]);
+                DEFINE INDEX only_one_friendship ON TABLE friend_of FIELDS key UNIQUE;""";
         try {
             driver.query(sql, Map.of(), Object.class);
         } catch (Exception e) {
@@ -49,7 +49,7 @@ public class SurrealFriendManager implements FriendManager {
     @Override
     public List<String> getFriends(String playerName) throws IllegalArgumentException {
         List<QueryResult<FriendList>> friendsQueryResult = driver.query("SELECT array::complement(<->friend_of<->user, [id]).name as friends FROM user WHERE name=$name", Map.of("name", playerName), FriendList.class);
-        if(friendsQueryResult.get(0).getResult().isEmpty()) {
+        if (friendsQueryResult.get(0).getResult().isEmpty()) {
             throw new IllegalArgumentException("This player does not exist");
         }
         return friendsQueryResult.get(0).getResult().get(0).getFriends();
@@ -57,7 +57,7 @@ public class SurrealFriendManager implements FriendManager {
 
     @Override
     public void createFriendRequest(Player player, String friend) throws IllegalArgumentException {
-        if(player.getName().equals(friend)){
+        if (player.getName().equals(friend)) {
             throw new IllegalArgumentException("You cannot be friends with yourself!");
         }
         if (getFriends(player).contains(friend)) {
@@ -79,7 +79,7 @@ public class SurrealFriendManager implements FriendManager {
 
     @Override
     public void removeFriend(Player player, String friend) throws IllegalArgumentException {
-        if(player.getName().equals(friend)){
+        if (player.getName().equals(friend)) {
             throw new IllegalArgumentException("You cannot breakup with yourself!");
         }
         driver.query("DELETE array::at((SELECT VALUE id FROM user WHERE name=$playerName), 0)<->friend_of WHERE in.name=$friendName || out.name=$friendName", Map.of("friendName", friend, "playerName", player.getName()), Object.class);
@@ -98,7 +98,7 @@ public class SurrealFriendManager implements FriendManager {
         //TODO: Allow for custom ttl
         List<QueryResult<DatabaseFriendRequest>> friendRequests = driver.query("SELECT <-(friend_request WHERE created>time::now()-1w)<-user.name as requests FROM user WHERE name=$playerName", Map.of("playerName", player.getName(), "ttl", ttl), DatabaseFriendRequest.class);
         List<FriendRequest> friendRequestList = new ArrayList<>();
-        for(String source:friendRequests.get(0).getResult().get(0).getRequests()){
+        for (String source : friendRequests.get(0).getResult().get(0).getRequests()) {
             friendRequestList.add(new SurrealFriendRequest(source, player.getName(), driver, playerManager));
         }
         return friendRequestList;

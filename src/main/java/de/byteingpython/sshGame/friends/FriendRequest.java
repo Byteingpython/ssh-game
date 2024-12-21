@@ -11,6 +11,7 @@ public abstract class FriendRequest {
 
     /**
      * Get the name of the player who this request is sent to
+     *
      * @return The name of the player who
      */
     public String getTarget() {
@@ -19,6 +20,7 @@ public abstract class FriendRequest {
 
     /**
      * Get the name of the player who sent the request
+     *
      * @return The name of the player who sent the request
      */
     public String getSource() {

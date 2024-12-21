@@ -8,4 +8,6 @@ public interface PlayerManager {
     void registerPlayer(Player player);
 
     void unregisterPlayer(Player player);
+
+    LocaleManager getLocaleManager();
 }

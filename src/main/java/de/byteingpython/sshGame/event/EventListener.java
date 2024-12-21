@@ -14,6 +14,7 @@ import java.lang.annotation.Target;
 public @interface EventListener {
     /**
      * Marks when an EventListener should be called. The higher the priority, the earlier it will be executed
+     *
      * @return The priority of this EventListener
      */
     ListenerPriority priority() default ListenerPriority.NORMAL;

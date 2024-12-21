@@ -8,9 +8,9 @@ import java.util.TimerTask;
 public class MessageQueue {
     private final Timer timer = new Timer();
     private final List<Message> messages = new ArrayList<>();
+    private final Runnable updateRunnable;
     private String placeholder;
     private boolean busy = false;
-    private final Runnable updateRunnable;
 
     public MessageQueue(String placeholder, Runnable updateRunnable) {
         this.placeholder = placeholder;

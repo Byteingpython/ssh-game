@@ -10,5 +10,7 @@ public class DatabaseFriendRequest {
         this.requests = new ArrayList<>();
     }
 
-    public List<String> getRequests() {return requests;}
+    public List<String> getRequests() {
+        return requests;
+    }
 }
