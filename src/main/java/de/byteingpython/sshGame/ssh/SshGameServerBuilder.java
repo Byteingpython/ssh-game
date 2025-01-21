@@ -7,18 +7,22 @@ import de.byteingpython.sshGame.ssh.shell.ShellFactory;
 import de.byteingpython.sshGame.utils.throttling.ConfigThrottler;
 import de.byteingpython.sshGame.utils.throttling.Throttler;
 import org.apache.sshd.server.SshServer;
+import org.apache.sshd.server.keyprovider.SimpleGeneratorHostKeyProvider;
+
+import java.io.IOException;
+import java.security.NoSuchAlgorithmException;
+import java.security.spec.InvalidKeySpecException;
 
 public class SshGameServerBuilder {
     private final SshServer sshServer;
     private final ConfigurationProvider configurationProvider;
 
-    public SshGameServerBuilder(ConfigurationProvider configurationProvider, CredentialAuthProvider authProvider) {
+    public SshGameServerBuilder(ConfigurationProvider configurationProvider, CredentialAuthProvider authProvider) throws IOException, InvalidKeySpecException, NoSuchAlgorithmException {
         this.configurationProvider = configurationProvider;
         this.sshServer = SshServer.setUpDefaultServer();
         this.sshServer.setPort(configurationProvider.getInt("SSH_PORT").orElse(22));
         this.sshServer.setShellFactory(new ShellFactory(configurationProvider, authProvider));
-        //this.sshServer.setKeyPairProvider(new SimpleGeneratorHostKeyProvider());
-        this.sshServer.setKeyPairProvider(new ConfigKeyPairProvider(configurationProvider));
+        this.sshServer.setKeyPairProvider(new SimpleGeneratorHostKeyProvider());
         if (configurationProvider.getString("SSH_PUBLIC_KEY").isPresent() && configurationProvider.getString("SSH_PRIVATE_KEY").isPresent()) {
             this.sshServer.setKeyPairProvider(new ConfigKeyPairProvider(configurationProvider));
         }

@@ -85,7 +85,7 @@ public class LobbyScreen implements Command, InputListener {
 
 
             String sb = "╔════════════════════════════════════════════╗\n\r" +
-                    "║ " + StringUtils.alignToSides(player.getLocale().getString("settings") + " ^s", "^f " + player.getLocale().getString("friends"), 42) + " ║\n\r" +
+                    "║ " + StringUtils.alignToSides(player.getLocale().getString("settings") + " ^s", player.getLocale().getString("help") + " ^h", "^f " + player.getLocale().getString("friends"), 42) + " ║\n\r" +
                     "║" +
                     StringUtils.centerText(player.getLobby().getPlayers().size() + "/" + player.getLobby().getGame().getMaxLobbySize(), 44) +
                     "║\n\r" +
@@ -280,110 +280,106 @@ public class LobbyScreen implements Command, InputListener {
         if (!player.getLobby().isPlaying()) {
             try {
                 logger.info("Received input: {}", input);
-                //Show a List with friends and offer Options
-                if (input == 6) {
-                    showFriendMenu();
-                    return;
-                }
 
-                //Start matchmaking
-                if (input == 17) {
-                    try {
-                        if (!matchmaker.isMatchmaking(player.getLobby())) {
-                            matchmaker.matchmake(player.getLobby());
-                            if (!player.getLobby().isPlaying()) {
-                                showMessage(player.getLocale().getString("matchmaking_start"), 2999);
-                            }
-                        } else {
-                            matchmaker.cancelMatchmaking(player.getLobby());
-                            showMessage(player.getLocale().getString("matchmaking_cancel"), 2999);
-                        }
-                    } catch (IllegalArgumentException e) {
-                        showMessage(e.getMessage(), 2999);
-                        throw e;
-                    }
-                }
-
-                //Select a game
-                if (input == 13) {
-                    SelectScreen<Game> selectScreen = new SelectScreen<>(player);
-                    gameManager.getGames().forEach(game -> selectScreen.addOption(game.getName(), game));
-                    unregisterListeners(this);
-                    selectScreen.selectOption(player.getLocale().getString("select_gamemode"), () -> {
-                        reregisterListener();
-                        selectScreen.getSelected().ifPresent(game -> {
-                            try {
-                                player.getLobby().setGame(game);
-                            } catch (IllegalStateException e) {
-                                showMessage(e.getMessage(), 3000);
-                            }
-                        });
-                    });
-                    return;
-
-                }
-
-                //Leave the current lobby
-                if (input == 12) {
-                    if (player.getLobby().getPlayers().size() <= 1) {
+                switch (input) {
+                    //Show a List with friends and offer Options
+                    case 6:
+                        showFriendMenu();
                         return;
-                    }
-                    Lobby newLobby = lobbyManager.createLobby();
-                    Lobby oldLobby = player.getLobby();
-                    player.getLobby().removePlayer(player);
-                    newLobby.addPlayer(player);
-                    List<Game> games = gameManager.getGames();
-                    if (!games.isEmpty()) {
-                        Game game = games.get(0);
-                        newLobby.setGame(game);
-                    }
-                    //Notify the other players that a rerender is necessary
-                    for (Player player : oldLobby.getPlayers()) {
-                        player.getEventHandler().handle(new ScreenUpdateEvent());
-                    }
-                }
+                    case 8:
+                        unregisterListeners(this);
+                        TextDisplayScreen.fromTranslation("help_text", player.getLocale()).show(player, this::reregisterListener);
+                        return;
 
-                //Join the lobby of another player
-                if (input == 10) {
-                    unregisterListeners(this);
-                    inviteTextInput = Optional.of(new TextInputScreen(new Runnable() {
-                        @Override
-                        public void run() {
-                            reregisterListener();
-                            LoggerFactory.getLogger(this.getClass()).info(inviteTextInput.get().getInput());
-                            Optional<Player> invitedPlayer = playerManager.getPlayer(inviteTextInput.get().getInput());
-                            inviteTextInput = Optional.empty();
-                            if (invitedPlayer.isEmpty()) {
-                                showMessage(player.getLocale().getString("player_not_exist"), 3000);
-                                return;
+                    //Start matchmaking
+                    case 17:
+                        try {
+                            if (!matchmaker.isMatchmaking(player.getLobby())) {
+                                matchmaker.matchmake(player.getLobby());
+                                if (!player.getLobby().isPlaying()) {
+                                    showMessage(player.getLocale().getString("matchmaking_start"), 2999);
+                                }
+                            } else {
+                                matchmaker.cancelMatchmaking(player.getLobby());
+                                showMessage(player.getLocale().getString("matchmaking_cancel"), 2999);
                             }
-                            if (invitedPlayer.get() == player) {
-                                showMessage(player.getLocale().getString("fraud_attempt"), 3000);
-                            }
-                            joinLobby(invitedPlayer);
+                        } catch (IllegalArgumentException e) {
+                            showMessage(e.getMessage(), 2999);
+                            throw e;
                         }
-                    }, player, player.getLocale().getString("invite_title")));
-                    return;
-                }
+                        break;
+                    //Select a game
+                    case 13:
+                        SelectScreen<Game> selectScreen = new SelectScreen<>(player);
+                        gameManager.getGames().forEach(game -> selectScreen.addOption(game.getName(), game));
+                        unregisterListeners(this);
+                        selectScreen.selectOption(player.getLocale().getString("select_gamemode"), () -> {
+                            reregisterListener();
+                            selectScreen.getSelected().ifPresent(game -> {
+                                try {
+                                    player.getLobby().setGame(game);
+                                } catch (IllegalStateException e) {
+                                    showMessage(e.getMessage(), 3000);
+                                }
+                            });
+                        });
+                        return;
+                    //Leave the current lobby
+                    case 12:
+                        if (player.getLobby().getPlayers().size() <= 1) {
+                            return;
+                        }
+                        Lobby newLobby = lobbyManager.createLobby();
+                        Lobby oldLobby = player.getLobby();
+                        player.getLobby().removePlayer(player);
+                        newLobby.addPlayer(player);
+                        List<Game> games = gameManager.getGames();
+                        if (!games.isEmpty()) {
+                            Game game = games.get(0);
+                            newLobby.setGame(game);
+                        }
+                        //Notify the other players that a rerender is necessary
+                        for (Player player : oldLobby.getPlayers()) {
+                            player.getEventHandler().handle(new ScreenUpdateEvent());
+                        }
+                        break;
+                    //Join the lobby of another player
+                    case 10:
+                        unregisterListeners(this);
+                        inviteTextInput = Optional.of(new TextInputScreen(new Runnable() {
+                            @Override
+                            public void run() {
+                                reregisterListener();
+                                LoggerFactory.getLogger(this.getClass()).info(inviteTextInput.get().getInput());
+                                Optional<Player> invitedPlayer = playerManager.getPlayer(inviteTextInput.get().getInput());
+                                inviteTextInput = Optional.empty();
+                                if (invitedPlayer.isEmpty()) {
+                                    showMessage(player.getLocale().getString("player_not_exist"), 3000);
+                                    return;
+                                }
+                                if (invitedPlayer.get() == player) {
+                                    showMessage(player.getLocale().getString("fraud_attempt"), 3000);
+                                }
+                                joinLobby(invitedPlayer);
+                            }
+                        }, player, player.getLocale().getString("invite_title")));
+                        return;
+                        // Open Settings screen
+                    case 19:
+                        unregisterListeners(this);
+                        new SettingsScreen(player, credentialAuthProvider, playerManager.getLocaleManager()).show(this::reregisterListener);
+                        break;
+                    case 3:
+                        Runtime.getRuntime().removeShutdownHook(shutdownHook);
+                        unregister();
+                        exit();
+                        return;
 
-                // Open Settings screen
-                if (input == 19) {
-                    unregisterListeners(this);
-                    new SettingsScreen(player, credentialAuthProvider, playerManager.getLocaleManager()).show(this::reregisterListener);
-                }
-
-                if (input == 3) {
-                    Runtime.getRuntime().removeShutdownHook(shutdownHook);
-                    unregister();
-                    exit();
-                    return;
-                }
-
-                //Leave the game
-                if (input == -1) {
-                    Runtime.getRuntime().removeShutdownHook(shutdownHook);
-                    unregister();
-                    return;
+                    //Leave the game
+                    case -1:
+                        Runtime.getRuntime().removeShutdownHook(shutdownHook);
+                        unregister();
+                        return;
                 }
 
             } catch (IOException e) {

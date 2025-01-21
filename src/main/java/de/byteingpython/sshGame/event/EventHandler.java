@@ -8,8 +8,8 @@ import java.util.List;
 import java.util.Map;
 
 public class EventHandler {
-    Map<Class<?>, Map<ListenerPriority, List<Method>>> events = new HashMap<>();
-    Map<Method, List<Object>> objects = new HashMap<>();
+    HashMap<Class<?>, HashMap<ListenerPriority, ArrayList<Method>>> events = new HashMap<>();
+    HashMap<Method, ArrayList<Object>> objects = new HashMap<>();
 
     /**
      * Registers all public methods marked with @EventListener as an event listener for the Event type that is the only argument of that method
@@ -35,7 +35,7 @@ public class EventHandler {
         if (!events.containsKey(method.getParameterTypes()[0])) {
             events.put(method.getParameterTypes()[0], new HashMap<>());
         }
-        Map<ListenerPriority, List<Method>> eventListeners = events.get(method.getParameterTypes()[0]);
+        HashMap<ListenerPriority, ArrayList<Method>> eventListeners = events.get(method.getParameterTypes()[0]);
         ListenerPriority priority = method.getAnnotation(EventListener.class).priority();
         if (!eventListeners.containsKey(method.getParameterTypes()[0])) {
             eventListeners.put(priority, new ArrayList<>());
@@ -81,11 +81,11 @@ public class EventHandler {
      */
     public void handle(Event event) {
         if (!events.containsKey(event.getClass())) return;
-        Map<ListenerPriority, List<Method>> eventListeners = events.get(event.getClass());
+        HashMap<ListenerPriority, ArrayList<Method>> eventListeners = (HashMap<ListenerPriority, ArrayList<Method>>) events.get(event.getClass());
         for (ListenerPriority priority : ListenerPriority.values()) {
             if (!eventListeners.containsKey(priority)) continue;
-            for (Method method : eventListeners.get(priority)) {
-                for (Object object : objects.get(method)) {
+            for (Method method : (ArrayList<Method>) eventListeners.get(priority).clone()) {
+                for (Object object : (ArrayList<Object>) objects.get(method).clone()) {
                     try {
                         method.invoke(object, event);
                     } catch (IllegalAccessException e) {

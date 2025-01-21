@@ -119,7 +119,7 @@ public class SelectScreen<T> implements InputListener {
             player.getInputEventHandler().unregisterListener(this);
             endRunnable.run();
             return;
-        } else if (input == 3) {
+        } else if (input == 3 || input == 'q') {
             selected = Optional.empty();
             running = false;
             player.getInputEventHandler().unregisterListener(this);

@@ -32,22 +32,22 @@
         <dependency>
             <groupId>org.apache.sshd</groupId>
             <artifactId>sshd-core</artifactId>
-            <version>2.12.1</version>
+            <version>2.14.0</version>
         </dependency>
         <dependency>
             <groupId>org.apache.sshd</groupId>
             <artifactId>sshd-common</artifactId>
-            <version>2.12.1</version>
+            <version>2.14.0</version>
         </dependency>
         <dependency>
             <groupId>org.apache.sshd</groupId>
             <artifactId>sshd-ldap</artifactId>
-            <version>2.12.1</version>
+            <version>2.14.0</version>
         </dependency>
         <dependency>
             <groupId>org.apache.sshd</groupId>
             <artifactId>sshd-openpgp</artifactId>
-            <version>2.12.1</version>
+            <version>2.14.0</version>
         </dependency>
         <dependency>
             <groupId>io.github.cdimascio</groupId>

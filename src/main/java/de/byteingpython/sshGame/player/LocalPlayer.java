@@ -39,7 +39,6 @@ public class LocalPlayer implements Player {
         // Handle terminal size changes
         environment.addSignalListener((channel, signal) -> {
             if (signal != Signal.WINCH) return;
-            Map<String, String> env = environment.getEnv();
             eventHandler.handle(new WindowChangeEvent(getWindowSize()));
         });
         locale = ResourceBundle.getBundle("translations", Locale.GERMAN);

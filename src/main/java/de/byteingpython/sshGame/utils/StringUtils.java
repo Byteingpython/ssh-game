@@ -64,8 +64,14 @@ public class StringUtils {
         return builder.toString();
     }
 
+    // TODO: Error check here
     public static String alignToSides(String left, String right, int length) {
         int spacesNeeded = length - left.length() - right.length();
         return left + " ".repeat(Math.max(0, spacesNeeded)) + right;
+    }
+
+    public static String alignToSides(String left, String center, String right, int length) {
+        int spacesNeeded = length - left.length() - right.length()-center.length();
+        return left + " ".repeat(Math.max(0, spacesNeeded/2)) + center + " ".repeat(Math.max(0, Math.round((float)spacesNeeded/2))) + right;
     }
 }
