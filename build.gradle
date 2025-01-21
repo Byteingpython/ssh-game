@@ -17,23 +17,22 @@ repositories {
 }
 
 dependencies {
-    implementation libs.com.sshtools.maverick.synergy.client
-    implementation libs.net.i2p.crypto.eddsa
-    implementation libs.org.slf4j.slf4j.api
-    implementation libs.org.apache.sshd.sshd.core
-    implementation libs.org.apache.sshd.sshd.common
-    implementation libs.org.apache.sshd.sshd.ldap
-    implementation libs.org.apache.sshd.sshd.openpgp
-    implementation libs.io.github.cdimascio.dotenv.java
-    implementation libs.com.surrealdb.surrealdb.driver
-    implementation libs.com.google.guava.guava
-    implementation libs.org.java.websocket.java.websocket
-    implementation libs.org.slf4j.slf4j.simple
-    implementation libs.org.bouncycastle.bcpkix.jdk18on
-    implementation libs.org.springframework.security.spring.security.crypto
-    implementation libs.redis.clients.jedis
-    implementation 'io.github.cdimascio:dotenv-java:3.1.0'
-    testImplementation libs.org.junit.jupiter.junit.jupiter
+    implementation "com.sshtools:maverick-synergy-client:3.1.0"
+    implementation "net.i2p.crypto:eddsa:0.3.0"
+    implementation "org.slf4j:slf4j-api:2.0.12"
+    implementation "org.apache.sshd:sshd-core:2.14.0"
+    implementation "org.apache.sshd:sshd-common:2.14.0"
+    implementation "org.apache.sshd:sshd-ldap:2.14.0"
+    implementation "org.apache.sshd:sshd-openpgp:2.14.0"
+    implementation "io.github.cdimascio:dotenv-java:3.0.0"
+    implementation "com.surrealdb:surrealdb-driver:0.1.0"
+    implementation "com.google.guava:guava:33.1.0-jre"
+    implementation "org.java-websocket:Java-WebSocket:1.5.6"
+    implementation "org.slf4j:slf4j-simple:2.0.12"
+    implementation "org.bouncycastle:bcpkix-jdk18on:1.77"
+    implementation "org.springframework.security:spring-security-crypto:6.4.2"
+    implementation "redis.clients:jedis:5.1.2"
+    testImplementation "org.junit.jupiter:junit-jupiter:5.10.1"
 }
 
 group = 'de.byteingpython'
@@ -51,8 +50,12 @@ application {
 
 jar {
     manifest {
-        attributes 'Main-Class' : application.mainClass
+        attributes'Main-Class' : application.mainClass
     }
+    archiveFileName = "ssh-game.jar"
+}
+shadowJar {
+    archiveFileName = "ssh-game-all.jar"
 }
 
 tasks.withType(JavaCompile) {
