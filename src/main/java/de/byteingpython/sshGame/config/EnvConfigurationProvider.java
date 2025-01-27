@@ -9,7 +9,7 @@ import java.util.Optional;
 public class EnvConfigurationProvider implements ConfigurationProvider {
 
     Logger logger = LoggerFactory.getLogger(EnvConfigurationProvider.class);
-    Dotenv dotenv = Dotenv.load();
+    Dotenv dotenv = Dotenv.configure().ignoreIfMissing().load();
 
     @Override
     public Optional<Integer> getInt(String key) {
