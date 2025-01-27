@@ -19,5 +19,5 @@ jobs:
           registry: ghcr.io
           githubOrg: Byteingpython # optional
           username: Byteingpython
-          password: ${{ secrets.GHCR_TOKEN }}
+          password: ${{ secrets.GITHUB_TOKEN }}
           dockerfile: "Dockerfile"
