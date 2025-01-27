@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Optional;
 
 public interface GameManager {
-    public List<Game> getGames();
-    public Optional<Game> getGame(String id);
+    List<Game> getGames();
+
+    Optional<Game> getGame(String id);
 }

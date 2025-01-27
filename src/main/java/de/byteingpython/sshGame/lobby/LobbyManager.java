@@ -4,8 +4,11 @@ import java.util.List;
 import java.util.UUID;
 
 public interface LobbyManager {
-    public Lobby createLobby();
-    public void removeLobby(Lobby lobby);
-    public Lobby getLobby(UUID id);
-    public List<Lobby> getLobbies();
+    Lobby createLobby();
+
+    void removeLobby(Lobby lobby);
+
+    Lobby getLobby(UUID id);
+
+    List<Lobby> getLobbies();
 }

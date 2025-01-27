@@ -10,12 +10,13 @@ import java.nio.charset.StandardCharsets;
 public class TextInputScreen implements InputListener {
     private final Runnable endCallback;
     private final Player player;
+    private boolean passwordInput = false;
     private String inputText = "";
 
     public TextInputScreen(Runnable endCallback, Player player, String message) throws IOException {
         this.endCallback = endCallback;
         this.player = player;
-        player.getEventHandler().registerListener(this);
+        player.getInputEventHandler().registerListener(this);
         player.getOutputStream().write(EscapeCodeUtils.CLEAR_SCREEN.getBytes(StandardCharsets.UTF_8));
         player.getOutputStream().write(EscapeCodeUtils.SHOW_CURSOR.getBytes(StandardCharsets.UTF_8));
         player.getOutputStream().flush();
@@ -47,8 +48,8 @@ public class TextInputScreen implements InputListener {
                 return;
             }
         }
-        if (input == 13||input == 3) {
-            player.getEventHandler().unregisterListener(this);
+        if (input == 13 || input == 3) {
+            player.getInputEventHandler().unregisterListener(this);
             try {
                 player.getOutputStream().write(EscapeCodeUtils.HIDE_CURSOR.getBytes(StandardCharsets.UTF_8));
                 player.getOutputStream().flush();
@@ -58,15 +59,19 @@ public class TextInputScreen implements InputListener {
             endCallback.run();
             return;
         }
-        if(input< 21) {
+        if (input < 21) {
             return;
         }
-        if(input>126){
+        if (input > 126) {
             return;
         }
         inputText += (char) input;
         try {
-            player.getOutputStream().write(input);
+            if (!passwordInput) {
+                player.getOutputStream().write(input);
+            } else {
+                player.getOutputStream().write(42);
+            }
             player.getOutputStream().flush();
         } catch (IOException ignored) {
         }
@@ -78,5 +83,9 @@ public class TextInputScreen implements InputListener {
 
     public void setInput(String input) {
         this.inputText = input;
+    }
+
+    public void setPasswordInput(boolean passwordInput) {
+        this.passwordInput = passwordInput;
     }
 }

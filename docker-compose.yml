@@ -11,6 +11,11 @@ services:
       SSH_PORT: 2022
       SURREALDB_HOST: "surrealdb"
       SURREALDB_PORT: "8000"
+      SURREALDB_USER: "root"
+      SURREALDB_PASSWORD: "<change-me>"
+      # Set this if you want a consistent host key. For more information on generating such a keypair, see the README.
+      # SSH_PRIVATE_KEY: ""
+      # SSH_PUBLIC_KEY: ""
   surrealdb:
     pull_policy: always
     user: "root"
@@ -18,5 +23,8 @@ services:
       - ./data:/data
     image: surrealdb/surrealdb:latest
     command: start file:/data/surrealdb.db
+    environment:
+      SURREAL_USER: "root"
+      SURREAL_PASS: "<change-me>"
   keydb:
     image: eqalpha/keydb

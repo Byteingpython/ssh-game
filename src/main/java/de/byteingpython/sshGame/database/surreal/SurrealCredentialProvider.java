@@ -1,5 +1,7 @@
 package de.byteingpython.sshGame.database.surreal;
 
+import com.sshtools.common.publickey.SshKeyUtils;
+import com.sshtools.common.ssh.components.SshPublicKey;
 import com.surrealdb.driver.SyncSurrealDriver;
 import com.surrealdb.driver.model.QueryResult;
 import de.byteingpython.sshGame.config.ConfigurationProvider;
@@ -8,7 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import javax.naming.ConfigurationException;
-import java.security.PublicKey;
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -32,7 +34,11 @@ public class SurrealCredentialProvider extends CredentialAuthProvider {
     }
 
     @Override
-    public Optional<PublicKey> getPublicKey(String username) {
+    public Optional<SshPublicKey> getPublicKey(String username) {
+        List<QueryResult<User>> keyQueryResult = driver.query("SELECT * FROM user WHERE name=$name", Map.of("name", username), User.class);
+        if (!keyQueryResult.get(0).getResult().isEmpty()) {
+            return keyQueryResult.get(0).getResult().get(0).getPublicKey();
+        }
         return Optional.empty();
     }
 
@@ -52,7 +58,7 @@ public class SurrealCredentialProvider extends CredentialAuthProvider {
     }
 
     @Override
-    public void createUser(String username, PublicKey publicKey) {
+    public void createUser(String username, SshPublicKey publicKey) {
         if (doesUserExist(username)) {
             throw new IllegalArgumentException("User already exists");
         }
@@ -69,12 +75,15 @@ public class SurrealCredentialProvider extends CredentialAuthProvider {
     }
 
     @Override
-    public void updateUserKey(String username, PublicKey publicKey) {
+    public void updateUserKey(String username, SshPublicKey publicKey) {
         if (!doesUserExist(username)) {
             throw new IllegalArgumentException("User does not exist");
         }
-        User user = driver.select("user:" + username, User.class).get(0);
-        user.setPublicKey(publicKey);
+        try {
+            driver.query("UPDATE user SET publicKey=$publicKey WHERE name=$name", Map.of("name", username, "publicKey", SshKeyUtils.getFormattedKey(publicKey, "")), User.class);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
         //TODO: Implement this
     }
 }

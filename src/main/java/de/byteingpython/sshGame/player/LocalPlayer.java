@@ -1,11 +1,19 @@
 package de.byteingpython.sshGame.player;
 
+import de.byteingpython.sshGame.event.EventHandler;
 import de.byteingpython.sshGame.event.InputEventHandler;
 import de.byteingpython.sshGame.event.StreamReaderInputHandler;
 import de.byteingpython.sshGame.lobby.Lobby;
+import de.byteingpython.sshGame.ssh.shell.WindowChangeEvent;
+import de.byteingpython.sshGame.ssh.shell.WindowSize;
+import org.apache.sshd.server.Environment;
+import org.apache.sshd.server.Signal;
 
 import java.io.InputStream;
 import java.io.OutputStream;
+import java.util.Locale;
+import java.util.Map;
+import java.util.ResourceBundle;
 
 public class LocalPlayer implements Player {
     private final String name;
@@ -14,15 +22,26 @@ public class LocalPlayer implements Player {
     private final InputStream inputStream;
     private final Runnable endCallback;
     private final InputEventHandler inputEventHandler;
+    private final EventHandler eventHandler;
+    private final Environment environment;
+    private ResourceBundle locale;
     private Lobby lobby;
 
-    public LocalPlayer(String name, OutputStream outputStream, OutputStream errorStream, InputStream inputStream, Runnable endCallback) {
+    public LocalPlayer(String name, OutputStream outputStream, OutputStream errorStream, InputStream inputStream, Runnable endCallback, Environment environment) {
         this.name = name;
         this.outputStream = outputStream;
         this.errorStream = errorStream;
         this.inputStream = inputStream;
         this.endCallback = endCallback;
-        this.inputEventHandler = new StreamReaderInputHandler(inputStream);
+        this.environment = environment;
+        this.eventHandler = new EventHandler();
+        this.inputEventHandler = new StreamReaderInputHandler(this);
+        // Handle terminal size changes
+        environment.addSignalListener((channel, signal) -> {
+            if (signal != Signal.WINCH) return;
+            eventHandler.handle(new WindowChangeEvent(getWindowSize()));
+        });
+        locale = ResourceBundle.getBundle("translations", Locale.GERMAN);
     }
 
     @Override
@@ -46,8 +65,31 @@ public class LocalPlayer implements Player {
     }
 
     @Override
-    public InputEventHandler getEventHandler() {
+    public InputEventHandler getInputEventHandler() {
         return inputEventHandler;
+    }
+
+    @Override
+    public EventHandler getEventHandler() {
+        return eventHandler;
+    }
+
+    @Override
+    public WindowSize getWindowSize() {
+        Map<String, String> env = environment.getEnv();
+        int width = Integer.parseInt(env.get(Environment.ENV_COLUMNS));
+        int height = Integer.parseInt(env.get(Environment.ENV_LINES));
+        return new WindowSize(width, height);
+    }
+
+    @Override
+    public ResourceBundle getLocale() {
+        return locale;
+    }
+
+    @Override
+    public void setLocale(Locale locale) {
+        this.locale = ResourceBundle.getBundle("translations", locale);
     }
 
     @Override

@@ -1,5 +1,7 @@
 package de.byteingpython.sshGame.ssh.auth;
 
+import com.sshtools.common.ssh.components.SshPublicKey;
+
 import java.security.PublicKey;
 import java.util.Optional;
 
@@ -14,5 +16,5 @@ public interface AuthProvider {
 
     void createUser(String username, String password);
 
-    void createUser(String username, PublicKey publicKey);
+    void createUser(String username, SshPublicKey publicKey);
 }

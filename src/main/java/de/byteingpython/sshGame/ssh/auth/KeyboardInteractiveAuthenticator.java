@@ -3,8 +3,6 @@ package de.byteingpython.sshGame.ssh.auth;
 import de.byteingpython.sshGame.utils.throttling.Throttler;
 import org.apache.sshd.server.auth.keyboard.InteractiveChallenge;
 import org.apache.sshd.server.session.ServerSession;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.List;
 

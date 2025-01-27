@@ -10,9 +10,13 @@ import de.byteingpython.sshGame.lobby.Lobby;
 public interface Matchmaker {
     /**
      * This method is responsible for matchmaking a lobby
+     *
      * @param lobby
      * @throws IllegalArgumentException throws IllegalArgumentException if the lobby is not valid/cannot be matchmaked e.g. to big or to small
      */
-    public void matchmake(Lobby lobby) throws IllegalArgumentException;
-    public void cancelMatchmaking(Lobby lobby);
+    void matchmake(Lobby lobby) throws IllegalArgumentException;
+
+    void cancelMatchmaking(Lobby lobby);
+
+    boolean isMatchmaking(Lobby lobby);
 }

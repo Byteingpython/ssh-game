@@ -1,8 +1,10 @@
 package de.byteingpython.sshGame.screen;
 
 
+import de.byteingpython.sshGame.event.EventListener;
 import de.byteingpython.sshGame.event.InputListener;
 import de.byteingpython.sshGame.friends.FriendManager;
+import de.byteingpython.sshGame.friends.FriendUpdateEvent;
 import de.byteingpython.sshGame.games.Game;
 import de.byteingpython.sshGame.games.GameManager;
 import de.byteingpython.sshGame.lobby.Lobby;
@@ -11,7 +13,11 @@ import de.byteingpython.sshGame.matchmaking.Matchmaker;
 import de.byteingpython.sshGame.player.LocalPlayer;
 import de.byteingpython.sshGame.player.Player;
 import de.byteingpython.sshGame.player.PlayerManager;
+import de.byteingpython.sshGame.ssh.auth.CredentialAuthProvider;
+import de.byteingpython.sshGame.ssh.shell.WindowChangeEvent;
 import de.byteingpython.sshGame.utils.EscapeCodeUtils;
+import de.byteingpython.sshGame.utils.Message;
+import de.byteingpython.sshGame.utils.MessageQueue;
 import de.byteingpython.sshGame.utils.StringUtils;
 import org.apache.sshd.server.Environment;
 import org.apache.sshd.server.ExitCallback;
@@ -26,8 +32,6 @@ import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Optional;
-import java.util.Timer;
-import java.util.TimerTask;
 
 public class LobbyScreen implements Command, InputListener {
 
@@ -37,22 +41,88 @@ public class LobbyScreen implements Command, InputListener {
     private final PlayerManager playerManager;
     private final FriendManager friendManager;
     private final Matchmaker matchmaker;
+    private final CredentialAuthProvider credentialAuthProvider;
     private InputStream in;
     private OutputStream out;
     private OutputStream err;
     private ExitCallback callback;
     private Optional<TextInputScreen> inviteTextInput = Optional.empty();
-    private Optional<TextInputScreen> addFriendTextInput = Optional.empty();
-    private String message = "Welcome to the game";
+    private boolean active = true;
+    private Player player;    private final MessageQueue messageQueue = new MessageQueue(this::render);
+    private final Thread shutdownHook = new Thread(() -> {
+        unregister();
+        exit();
+    });
 
-    private Player player;
 
-    public LobbyScreen(LobbyManager lobbyManager, GameManager gameManager, Matchmaker matchmaker, PlayerManager playerManager, FriendManager friendManager) {
+    public LobbyScreen(LobbyManager lobbyManager, GameManager gameManager, Matchmaker matchmaker, PlayerManager playerManager, FriendManager friendManager, CredentialAuthProvider credentialAuthProvider) {
         this.lobbyManager = lobbyManager;
         this.gameManager = gameManager;
         this.matchmaker = matchmaker;
         this.playerManager = playerManager;
         this.friendManager = friendManager;
+        this.credentialAuthProvider = credentialAuthProvider;
+    }
+
+    /**
+     * Reregister the InputListener
+     */
+    private void reregisterListener() {
+        active = true;
+        player.getInputEventHandler().registerListener(this);
+        player.getEventHandler().registerListeners(this);
+        render();
+    }
+
+    /**
+     * Assembles the Lobby screen from different string segments, clears the screen of the player and the sends the newly assembled screen
+     */
+    private void render() {
+        if (player.getLobby().isPlaying() || !active) return;
+        try {
+            player.getOutputStream().write(EscapeCodeUtils.CLEAR_SCREEN.getBytes(StandardCharsets.UTF_8));
+            player.getOutputStream().write(EscapeCodeUtils.HIDE_CURSOR.getBytes(StandardCharsets.UTF_8));
+
+
+            String sb = "╔════════════════════════════════════════════╗\n\r" +
+                    "║ " + StringUtils.alignToSides(player.getLocale().getString("settings") + " ^s", player.getLocale().getString("help") + " ^h", "^f " + player.getLocale().getString("friends"), 42) + " ║\n\r" +
+                    "║" +
+                    StringUtils.centerText(player.getLobby().getPlayers().size() + "/" + player.getLobby().getGame().getMaxLobbySize(), 44) +
+                    "║\n\r" +
+                    "║";
+
+            if (player.getLobby().getPlayers().size() > 1) {
+                sb += StringUtils.centerText("Leave ^l", 44);
+            } else {
+                sb += "                                            ";
+            }
+            sb += "║\n\r";
+
+            sb += renderPlayerCarousel() + "║";
+
+            sb += StringUtils.centerText(messageQueue.getCurrentText(), 44) +
+                    "║\n\r";
+
+
+            //This monster is here to adjust the size of the Box that shows the game to the size of the name of the game
+            String queueText = player.getLocale().getString("queue");
+            String gameName = player.getLobby().getGame().getName();
+            sb += "║ " + StringUtils.alignToSides("┏" + "╺".repeat(queueText.length()) + "┓  ",
+                    "  ┏" + "╺".repeat(gameName.length()) + "┓",
+                    42) + " ║\n\r";
+            sb += "║ " + StringUtils.alignToSides("╏" + queueText + "╏^q",
+                    "^m╏" + gameName + "╏",
+                    42) + " ║\n\r";
+            sb += "║ " + StringUtils.alignToSides("┗" + "╺".repeat(queueText.length()) + "┛  ",
+                    "  ┗" + "╺".repeat(gameName.length()) + "┛",
+                    42) + " ║\n\r";
+            sb += "╚════════════════════════════════════════════╝";
+
+            player.getOutputStream().write(StringUtils.centerInTerminal(sb, player.getWindowSize()).getBytes(StandardCharsets.UTF_8));
+            player.getOutputStream().flush();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
@@ -76,18 +146,18 @@ public class LobbyScreen implements Command, InputListener {
         this.out = out;
     }
 
-
     @Override
     public void start(ChannelSession channel, Environment env) throws IOException {
-        this.player = new LocalPlayer(channel.getSession().getUsername(), out, err, in, this::render);
+        this.player = new LocalPlayer(channel.getSession().getUsername(), out, err, in, this::render, env);
         try {
             playerManager.registerPlayer(player);
         } catch (IllegalArgumentException e) {
-            player.getOutputStream().write(("Unable to register Player. " + e.getMessage() + "\n\r").getBytes(StandardCharsets.UTF_8));
+            player.getOutputStream().write((player.getLocale().getString("registration_error") + e.getMessage() + "\n\r").getBytes(StandardCharsets.UTF_8));
             player.getOutputStream().flush();
             callback.onExit(0);
             return;
         }
+        messageQueue.setPlaceholder(player.getLocale().getString("welcome_message"));
         Lobby lobby = lobbyManager.createLobby();
         lobby.addPlayer(player);
 
@@ -106,7 +176,9 @@ public class LobbyScreen implements Command, InputListener {
             return;
         }
         logger.trace("Starting lobby");
-        player.getEventHandler().registerListener(this);
+        Runtime.getRuntime().addShutdownHook(shutdownHook);
+        player.getInputEventHandler().registerListener(this);
+        player.getEventHandler().registerListeners(this);
         render();
     }
 
@@ -118,24 +190,19 @@ public class LobbyScreen implements Command, InputListener {
      * @param duration the duration in milliseconds
      */
     private void showMessage(String s, long duration) {
-        message = s;
-        new Timer().schedule(new TimerTask() {
-            @Override
-            public void run() {
-                if (message.equals(s)) {
-                    message = "";
-                }
-            }
-        }, duration);
+        messageQueue.addMessage(new Message(s, duration));
         render();
     }
 
-    /**
-     * Reregister the InputListener
-     */
-    private void reregisterListener() {
-        player.getEventHandler().registerListener(this);
-        render();
+    private void unregisterListeners(LobbyScreen listener) {
+        active = false;
+        player.getInputEventHandler().unregisterListener(this);
+        player.getEventHandler().unregisterListeners(this);
+        try {
+            player.getEventHandler().registerListener(this, this.getClass().getMethod("onMessage", LobbyScreenMessageEvent.class));
+        } catch (NoSuchMethodException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     /**
@@ -153,7 +220,7 @@ public class LobbyScreen implements Command, InputListener {
             firstLine.append("  ╭───╮  ");
             secondLine.append("^j│ + │  ");
             thirdLine.append("  ╰───╯  ");
-            fourthLine.append("  Join   ");
+            fourthLine.append(StringUtils.centerText(player.getLocale().getString("join"), 9));
         }
         for (Player iterPlayer : player.getLobby().getPlayers()) {
             firstLine.append("  ╭───╮  ");
@@ -183,226 +250,136 @@ public class LobbyScreen implements Command, InputListener {
                 "\n\r";
     }
 
-    /**
-     * Assembles the Lobby screen from different string segments, clears the screen of the player and the sends the newly assembled screen
-     */
-    private void render() {
-        try {
-            player.getOutputStream().write(EscapeCodeUtils.CLEAR_SCREEN.getBytes(StandardCharsets.UTF_8));
-            player.getOutputStream().flush();
-
-
-            String sb = "╔════════════════════════════════════════════╗\n\r" +
-                    "║ Settings ^s                     ^f Friends ║\n\r" +
-                    "║" +
-                    StringUtils.centerText(player.getLobby().getPlayers().size() + "/" + player.getLobby().getGame().getMaxLobbySize(), 44) +
-                    "║\n\r" +
-                    "║";
-
-            if (player.getLobby().getPlayers().size() > 1) {
-                sb += StringUtils.centerText("Leave ^l", 44);
-            } else {
-                sb += "                                            ";
-            }
-            sb += "║\n\r";
-
-            sb += renderPlayerCarousel() + "║";
-
-            sb += StringUtils.centerText(message, 44) +
-                    "║\n\r" +
-                    "║ ┏╺╺╺╺╺┓";
-            //This monster is here to adjust the size of the Box that shows the game to the size of the name of the game
-            sb += " ".repeat(33 - player.getLobby().getGame().getName().length()) + "┏" + "╺".repeat(player.getLobby().getGame().getName().length()) + "┓";
-            sb += " ║\n\r║ ╏queue╏^q";
-            sb += " ".repeat(29 - player.getLobby().getGame().getName().length());
-            sb += "^m╏" + player.getLobby().getGame().getName() + "╏ ║\n\r║ ┗╺╺╺╺╺┛";
-            sb += " ".repeat(33 - player.getLobby().getGame().getName().length()) + "┗" + "╺".repeat(player.getLobby().getGame().getName().length()) + "┛";
-            sb += " ║\n\r" + "╚════════════════════════════════════════════╝";
-
-            player.getOutputStream().write(sb.getBytes(StandardCharsets.UTF_8));
-            player.getOutputStream().write(EscapeCodeUtils.HIDE_CURSOR.getBytes(StandardCharsets.UTF_8));
-            player.getOutputStream().flush();
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
+    @EventListener
+    public void onFriendUpdate(FriendUpdateEvent event) {
+        if (player.getLobby().isPlaying()) return;
+        String messageText = event.getFriendName() + " " + player.getLocale().getString(switch (event.getType()) {
+            case ADDED -> "friend_added";
+            case REMOVED -> "friend_removed";
+            case REQUESTED -> "friend_requested";
+        });
+        messageQueue.addMessage(new Message(messageText, 2000));
     }
 
     /**
      * Show a list with all the players friends, options for each friend and the option to add a new friend
      */
     public void showFriendMenu() {
-        SelectScreen<String> friendSelectScreen = new SelectScreen<>(player);
-        List<String> friends = friendManager.getFriends(player);
-        for(String friend: friends){
-            String friendOption = friend;
-            if(playerManager.getPlayer(friend).isPresent()){
-                friendOption += " - Online";
-            }
-            friendSelectScreen.addOption(friendOption, friend);
-        }
-        friendSelectScreen.addOption("Add friend", "");
-        player.getEventHandler().unregisterListener(this);
-        LobbyScreen lobbyScreen = this;
-        friendSelectScreen.selectOption(new Runnable() {
-            @Override
-            public void run() {
-                LoggerFactory.getLogger(this.getClass()).info("select screen ended");
-                reregisterListener();
-                if(friendSelectScreen.getSelected().isEmpty()){
-                    return;
-                }
-                if(friendSelectScreen.getSelected().get().isEmpty()){
-                    player.getEventHandler().unregisterListener(lobbyScreen);
-                    try {
-                        lobbyScreen.addFriendTextInput=  Optional.of(new TextInputScreen(() -> {
-                            friendManager.addFriend(player, addFriendTextInput.get().getInput());
-                            reregisterListener();
-                        }, player, "Enter the name of your friend"));
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                    return;
-                }
-
-                SelectScreen<String> friendOptionSelectScreen = new SelectScreen<>(player);
-
-                Optional<Player> selectedFriendPlayer = playerManager.getPlayer(friendSelectScreen.getSelected().get());
-                if(selectedFriendPlayer.isPresent()){
-                    Lobby selectedFriendLobby = selectedFriendPlayer.get().getLobby();
-                    if(selectedFriendLobby.getPlayers().size()<player.getLobby().getGame().getMaxLobbySize()&&!selectedFriendLobby.isPlaying()){
-                        friendOptionSelectScreen.addOption("Join Lobby", "join");
-                    }
-                }
-
-                friendOptionSelectScreen.addOption("Remove friend", "remove");
-
-                player.getEventHandler().unregisterListener(lobbyScreen);
-                friendOptionSelectScreen.selectOption("Options for "+friendSelectScreen.getSelected().get(), () -> {
-                    reregisterListener();
-                    if(friendOptionSelectScreen.getSelected().isEmpty()){
-                        showFriendMenu();
-                        return;
-                    }
-                    if(friendOptionSelectScreen.getSelected().get().equals("remove")){
-                        friendManager.removeFriend(player, friendSelectScreen.getSelected().get());
-                    }
-                    if(friendOptionSelectScreen.getSelected().get().equals("join")){
-                        joinLobby(selectedFriendPlayer);
-                    }
-                });
-
-            }
-        });
+        unregisterListeners(this);
+        FriendMenuScreen friendMenuScreen = new FriendMenuScreen(player, friendManager, playerManager);
+        friendMenuScreen.show(this::reregisterListener);
     }
 
     @Override
     public void destroy(ChannelSession channel) {
-        callback.onExit(0, "Goodbye");
+        callback.onExit(0, "");
     }
 
     @Override
     public void onInput(int input) {
         if (!player.getLobby().isPlaying()) {
             try {
-                logger.info("Received input: " + input);
-                if (input == 19) {
-                    out.write("-> Settings".getBytes());
-                    out.flush();
-                }
-                //Show a List with friends and offer Options
-                if (input == 6) {
-                    showFriendMenu();
-                    return;
-                }
+                logger.info("Received input: {}", input);
 
-                //Start matchmaking
-                if (input == 17) {
-                    try {
-                        matchmaker.matchmake(player.getLobby());
-                        if (!player.getLobby().isPlaying()) {
-                            showMessage("Matchmaking started", 2999);
-                        }
-                    } catch (IllegalArgumentException e) {
-                        showMessage(e.getMessage(), 2999);
-                        throw e;
-                    }
-                }
-
-                //Select a game
-                if (input == 13) {
-                    SelectScreen<Game> selectScreen = new SelectScreen<>(player);
-                    gameManager.getGames().forEach(game -> selectScreen.addOption(game.getName(), game));
-                    player.getEventHandler().unregisterListener(this);
-                    selectScreen.selectOption("Select gamemode", () -> {
-                        reregisterListener();
-                        selectScreen.getSelected().ifPresent(game -> {
-                            try {
-                                player.getLobby().setGame(game);
-                            } catch (IllegalStateException e) {
-                                showMessage(e.getMessage(), 3000);
-                            }
-                        });
-                    });
-                    return;
-
-                }
-
-                //Leave the current lobby
-                if (input == 12) {
-                    if (player.getLobby().getPlayers().size() <= 1) {
+                switch (input) {
+                    //Show a List with friends and offer Options
+                    case 6:
+                        showFriendMenu();
                         return;
-                    }
-                    Lobby newLobby = lobbyManager.createLobby();
-                    player.getLobby().removePlayer(player);
-                    newLobby.addPlayer(player);
-                    List<Game> games = gameManager.getGames();
-                    if (!games.isEmpty()) {
-                        Game game = games.get(0);
-                        newLobby.setGame(game);
-                    }
-                }
+                    case 8:
+                        unregisterListeners(this);
+                        TextDisplayScreen.fromTranslation("help_text", player.getLocale()).show(player, this::reregisterListener);
+                        return;
 
-                //Join the lobby of another player
-                if (input == 10) {
-                    player.getEventHandler().unregisterListener(this);
-                    inviteTextInput = Optional.of(new TextInputScreen(new Runnable() {
-                        @Override
-                        public void run() {
-                            reregisterListener();
-                            LoggerFactory.getLogger(this.getClass()).info(inviteTextInput.get().getInput());
-                            Optional<Player> invitedPlayer = playerManager.getPlayer(inviteTextInput.get().getInput());
-                            inviteTextInput = Optional.empty();
-                            if (invitedPlayer.isEmpty()) {
-                                showMessage("This player does not exist", 3000);
-                                return;
+                    //Start matchmaking
+                    case 17:
+                        try {
+                            if (!matchmaker.isMatchmaking(player.getLobby())) {
+                                matchmaker.matchmake(player.getLobby());
+                                if (!player.getLobby().isPlaying()) {
+                                    showMessage(player.getLocale().getString("matchmaking_start"), 2999);
+                                }
+                            } else {
+                                matchmaker.cancelMatchmaking(player.getLobby());
+                                showMessage(player.getLocale().getString("matchmaking_cancel"), 2999);
                             }
-                            if (invitedPlayer.get() == player) {
-                                showMessage("Nice try! Nope this isn't that easy to fool", 3000);
-                            }
-                            joinLobby(invitedPlayer);
+                        } catch (IllegalArgumentException e) {
+                            showMessage(e.getMessage(), 2999);
+                            throw e;
                         }
-                    }, player, "Input Player name"));
-                    LoggerFactory.getLogger(this.getClass()).info("Started Text Input");
-                    return;
-                }
+                        break;
+                    //Select a game
+                    case 13:
+                        SelectScreen<Game> selectScreen = new SelectScreen<>(player);
+                        gameManager.getGames().forEach(game -> selectScreen.addOption(game.getName(), game));
+                        unregisterListeners(this);
+                        selectScreen.selectOption(player.getLocale().getString("select_gamemode"), () -> {
+                            reregisterListener();
+                            selectScreen.getSelected().ifPresent(game -> {
+                                try {
+                                    player.getLobby().setGame(game);
+                                } catch (IllegalStateException e) {
+                                    showMessage(e.getMessage(), 3000);
+                                }
+                            });
+                        });
+                        return;
+                    //Leave the current lobby
+                    case 12:
+                        if (player.getLobby().getPlayers().size() <= 1) {
+                            return;
+                        }
+                        Lobby newLobby = lobbyManager.createLobby();
+                        Lobby oldLobby = player.getLobby();
+                        player.getLobby().removePlayer(player);
+                        newLobby.addPlayer(player);
+                        List<Game> games = gameManager.getGames();
+                        if (!games.isEmpty()) {
+                            Game game = games.get(0);
+                            newLobby.setGame(game);
+                        }
+                        //Notify the other players that a rerender is necessary
+                        for (Player player : oldLobby.getPlayers()) {
+                            player.getEventHandler().handle(new ScreenUpdateEvent());
+                        }
+                        break;
+                    //Join the lobby of another player
+                    case 10:
+                        unregisterListeners(this);
+                        inviteTextInput = Optional.of(new TextInputScreen(new Runnable() {
+                            @Override
+                            public void run() {
+                                reregisterListener();
+                                LoggerFactory.getLogger(this.getClass()).info(inviteTextInput.get().getInput());
+                                Optional<Player> invitedPlayer = playerManager.getPlayer(inviteTextInput.get().getInput());
+                                inviteTextInput = Optional.empty();
+                                if (invitedPlayer.isEmpty()) {
+                                    showMessage(player.getLocale().getString("player_not_exist"), 3000);
+                                    return;
+                                }
+                                if (invitedPlayer.get() == player) {
+                                    showMessage(player.getLocale().getString("fraud_attempt"), 3000);
+                                }
+                                joinLobby(invitedPlayer);
+                            }
+                        }, player, player.getLocale().getString("invite_title")));
+                        return;
+                        // Open Settings screen
+                    case 19:
+                        unregisterListeners(this);
+                        new SettingsScreen(player, credentialAuthProvider, playerManager.getLocaleManager()).show(this::reregisterListener);
+                        break;
+                    case 3:
+                        Runtime.getRuntime().removeShutdownHook(shutdownHook);
+                        unregister();
+                        exit();
+                        return;
 
-                if(input==3){
-                    out.write(EscapeCodeUtils.SWITCH_TO_MAIN_SCREEN.getBytes(StandardCharsets.UTF_8));
-                    out.flush();
-                    out.write("\nGoodbye\n".getBytes());
-                    out.flush();
-                    callback.onExit(-1, "Goodbye");
-                    return;
-                }
-                //Leave the game
-                if (input == -1) {
-                    playerManager.unregisterPlayer(player);
-                    if (player.getLobby().getPlayers().size() <= 1) {
-                        lobbyManager.removeLobby(player.getLobby());
-                    }
-                    player.getLobby().removePlayer(player);
-                    player.getEventHandler().unregisterListener(this);
-                    return;
+                    //Leave the game
+                    case -1:
+                        Runtime.getRuntime().removeShutdownHook(shutdownHook);
+                        unregister();
+                        return;
                 }
 
             } catch (IOException e) {
@@ -419,11 +396,57 @@ public class LobbyScreen implements Command, InputListener {
         player.getLobby().removePlayer(player);
         try {
             invitedPlayer.get().getLobby().addPlayer(player);
-            lobbyManager.removeLobby(originalLobby);
+            if (originalLobby.getPlayers().isEmpty()) {
+                lobbyManager.removeLobby(originalLobby);
+            }
         } catch (IllegalStateException e) {
             showMessage(e.getMessage(), 3000);
             originalLobby.addPlayer(player);
         }
+        // Update all  the players screens so the new player is displayed
+        for (Player lobbyPlayer : player.getLobby().getPlayers()) {
+            lobbyPlayer.getEventHandler().handle(new ScreenUpdateEvent());
+        }
+    }
+
+    @EventListener
+    public void onUpdate(ScreenUpdateEvent event) {
+        if (player.getLobby().isPlaying() || !active) return;
         render();
     }
+
+    @EventListener
+    public void onMessage(LobbyScreenMessageEvent event) {
+        this.messageQueue.addMessage(event.getMessage());
+    }
+
+    private void exit() {
+        try {
+            out.write(EscapeCodeUtils.SWITCH_TO_MAIN_SCREEN.getBytes(StandardCharsets.UTF_8));
+            out.write(EscapeCodeUtils.SHOW_CURSOR.getBytes(StandardCharsets.UTF_8));
+            out.flush();
+            out.write(("\n\r" + player.getLocale().getString("exit_message") + "\n\r").getBytes());
+            out.flush();
+            callback.onExit(-1, player.getLocale().getString("exit_message"));
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void unregister() {
+        playerManager.unregisterPlayer(player);
+        if (player.getLobby().getPlayers().size() <= 1) {
+            lobbyManager.removeLobby(player.getLobby());
+        }
+        player.getLobby().removePlayer(player);
+        unregisterListeners(this);
+    }
+
+    @EventListener
+    public void onWindowChange(WindowChangeEvent event) {
+        render();
+    }
+
+
+
 }

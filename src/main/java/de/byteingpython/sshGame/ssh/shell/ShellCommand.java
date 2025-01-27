@@ -4,9 +4,10 @@ import de.byteingpython.sshGame.config.ConfigurationProvider;
 import de.byteingpython.sshGame.friends.FriendManager;
 import de.byteingpython.sshGame.games.GameManager;
 import de.byteingpython.sshGame.lobby.LobbyManager;
-import de.byteingpython.sshGame.player.PlayerManager;
 import de.byteingpython.sshGame.matchmaking.Matchmaker;
+import de.byteingpython.sshGame.player.PlayerManager;
 import de.byteingpython.sshGame.screen.LobbyScreen;
+import de.byteingpython.sshGame.ssh.auth.CredentialAuthProvider;
 import org.apache.sshd.common.io.IoInputStream;
 import org.apache.sshd.common.io.IoOutputStream;
 import org.apache.sshd.common.util.buffer.ByteArrayBuffer;
@@ -25,6 +26,12 @@ public class ShellCommand implements Command {
 
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
     private final ConfigurationProvider configurationProvider;
+    private final LobbyManager lobbyManager;
+    private final GameManager gameManager;
+    private final Matchmaker matchmaker;
+    private final PlayerManager playerManager;
+    private final FriendManager friendManager;
+    private final CredentialAuthProvider credentialAuthProvider;
     private InputStream in;
     private OutputStream out;
     private OutputStream err;
@@ -32,19 +39,15 @@ public class ShellCommand implements Command {
     private IoOutputStream ioErr;
     private IoInputStream ioIn;
     private ExitCallback callback;
-    private final LobbyManager lobbyManager;
-    private final GameManager gameManager;
-    private final Matchmaker matchmaker;
-    private final PlayerManager playerManager;
-    private final FriendManager friendManager;
 
-    public ShellCommand(ConfigurationProvider configurationProvider, LobbyManager lobbyManager, PlayerManager playerManager, GameManager gameManager, Matchmaker matchmaker, FriendManager friendManager) {
+    public ShellCommand(ConfigurationProvider configurationProvider, LobbyManager lobbyManager, PlayerManager playerManager, GameManager gameManager, Matchmaker matchmaker, FriendManager friendManager, CredentialAuthProvider credentialAuthProvider) {
         this.configurationProvider = configurationProvider;
         this.lobbyManager = lobbyManager;
         this.gameManager = gameManager;
         this.matchmaker = matchmaker;
         this.playerManager = playerManager;
         this.friendManager = friendManager;
+        this.credentialAuthProvider = credentialAuthProvider;
     }
 
     @Override
@@ -89,18 +92,18 @@ public class ShellCommand implements Command {
                 } catch (IOException e) {
                     throw new RuntimeException(e);
                 }
-                    try {
-                        out.write("\033[H\033[2J".getBytes());
-                        out.flush();
-                        LobbyScreen lobby = new LobbyScreen(lobbyManager, gameManager, matchmaker, playerManager, friendManager);
-                        lobby.setInputStream(in);
-                        lobby.setOutputStream(out);
-                        lobby.setExitCallback(callback);
-                        lobby.setErrorStream(err);
-                        lobby.start(channel, env);
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
+                try {
+                    out.write("\033[H\033[2J".getBytes());
+                    out.flush();
+                    LobbyScreen lobby = new LobbyScreen(lobbyManager, gameManager, matchmaker, playerManager, friendManager, credentialAuthProvider);
+                    lobby.setInputStream(in);
+                    lobby.setOutputStream(out);
+                    lobby.setExitCallback(callback);
+                    lobby.setErrorStream(err);
+                    lobby.start(channel, env);
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
             }
 
         }).start();

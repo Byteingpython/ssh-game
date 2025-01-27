@@ -1,17 +1,22 @@
 package de.byteingpython.sshGame.ssh.shell;
 
+import com.surrealdb.driver.SyncSurrealDriver;
 import de.byteingpython.sshGame.config.ConfigurationProvider;
+import de.byteingpython.sshGame.database.surreal.ConfigSurrealDriver;
 import de.byteingpython.sshGame.database.surreal.SurrealFriendManager;
+import de.byteingpython.sshGame.database.surreal.SurrealLocaleManager;
+import de.byteingpython.sshGame.database.surreal.SurrealStatisticsManager;
 import de.byteingpython.sshGame.friends.FriendManager;
-import de.byteingpython.sshGame.games.*;
-import de.byteingpython.sshGame.games.test.TestGame;
-import de.byteingpython.sshGame.matchmaking.LocalMatchmaker;
-import de.byteingpython.sshGame.matchmaking.Matchmaker;
+import de.byteingpython.sshGame.games.LocalGameManager;
+import de.byteingpython.sshGame.games.StatisticsManager;
 import de.byteingpython.sshGame.games.tictactoe.TicTacToe;
 import de.byteingpython.sshGame.lobby.LobbyManager;
 import de.byteingpython.sshGame.lobby.LocalLobbyManager;
+import de.byteingpython.sshGame.matchmaking.LocalMatchmaker;
+import de.byteingpython.sshGame.matchmaking.Matchmaker;
 import de.byteingpython.sshGame.player.LocalPlayerManager;
 import de.byteingpython.sshGame.player.PlayerManager;
+import de.byteingpython.sshGame.ssh.auth.CredentialAuthProvider;
 import org.apache.sshd.server.channel.ChannelSession;
 import org.apache.sshd.server.command.Command;
 
@@ -21,16 +26,24 @@ public class ShellFactory implements org.apache.sshd.server.shell.ShellFactory {
 
     private final ConfigurationProvider configurationProvider;
     private final LobbyManager localLobbyManager = new LocalLobbyManager();
-    private final GameManager localGameManager = new LocalGameMananger(new TicTacToe());
+    private final LocalGameManager localGameManager;
     private final Matchmaker localMatchmaker = new LocalMatchmaker();
-    private final PlayerManager localPlayerManager = new LocalPlayerManager();
+    private final PlayerManager localPlayerManager;
+    private final CredentialAuthProvider credentialAuthProvider;
     private final FriendManager surrealFriendManager;
 
 
-    public ShellFactory(ConfigurationProvider configurationProvider) {
+    public ShellFactory(ConfigurationProvider configurationProvider, CredentialAuthProvider credentialAuthProvider) {
         this.configurationProvider = configurationProvider;
+        this.credentialAuthProvider = credentialAuthProvider;
         try {
-            surrealFriendManager = new SurrealFriendManager(configurationProvider);
+            SyncSurrealDriver driver = new ConfigSurrealDriver(configurationProvider);
+            localPlayerManager = new LocalPlayerManager(new SurrealLocaleManager(driver));
+            surrealFriendManager = new SurrealFriendManager(driver, configurationProvider, localPlayerManager);
+            localGameManager = new LocalGameManager();
+            StatisticsManager statisticsManager = new SurrealStatisticsManager(driver, localGameManager);
+            localGameManager.add(new TicTacToe(statisticsManager, configurationProvider));
+
         } catch (ConfigurationException e) {
             throw new RuntimeException(e);
         }
@@ -39,6 +52,6 @@ public class ShellFactory implements org.apache.sshd.server.shell.ShellFactory {
 
     @Override
     public Command createShell(ChannelSession channel) {
-        return new ShellCommand(configurationProvider, localLobbyManager, localPlayerManager, localGameManager, localMatchmaker, surrealFriendManager);
+        return new ShellCommand(configurationProvider, localLobbyManager, localPlayerManager, localGameManager, localMatchmaker, surrealFriendManager, credentialAuthProvider);
     }
 }

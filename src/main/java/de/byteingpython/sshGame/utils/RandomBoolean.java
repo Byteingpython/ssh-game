@@ -4,4 +4,8 @@ public class RandomBoolean {
     public static boolean getRandomBoolean() {
         return Math.random() < 0.5;
     }
+
+    public static boolean getRandomBoolean(float probability) {
+        return Math.random() < probability;
+    }
 }

@@ -7,6 +7,11 @@ import java.util.Optional;
 public class LocalPlayerManager implements PlayerManager {
 
     private final Map<String, Player> players = new HashMap<>();
+    private final LocaleManager localeManager;
+
+    public LocalPlayerManager(LocaleManager localeManager) {
+        this.localeManager = localeManager;
+    }
 
     @Override
     public Optional<Player> getPlayer(String name) {
@@ -18,6 +23,7 @@ public class LocalPlayerManager implements PlayerManager {
         if (players.containsKey(player.getName())) {
             throw new IllegalArgumentException("Player already exists: " + player.getName());
         }
+        player.setLocale(localeManager.getLocale(player));
         players.put(player.getName(), player);
     }
 
@@ -27,5 +33,10 @@ public class LocalPlayerManager implements PlayerManager {
             throw new IllegalArgumentException("Player does not exist: " + player.getName());
         }
         players.remove(player.getName());
+    }
+
+    @Override
+    public LocaleManager getLocaleManager() {
+        return localeManager;
     }
 }

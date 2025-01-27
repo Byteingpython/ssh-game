@@ -1,8 +1,11 @@
 package de.byteingpython.sshGame.games.tictactoe;
 
+import de.byteingpython.sshGame.event.EventListener;
 import de.byteingpython.sshGame.event.InputListener;
+import de.byteingpython.sshGame.games.StatisticsManager;
 import de.byteingpython.sshGame.lobby.Lobby;
 import de.byteingpython.sshGame.player.Player;
+import de.byteingpython.sshGame.ssh.shell.WindowChangeEvent;
 import de.byteingpython.sshGame.utils.EscapeCodeUtils;
 import de.byteingpython.sshGame.utils.StringUtils;
 
@@ -14,14 +17,23 @@ import java.util.Map;
 public class Board implements InputListener {
     private final int[] board = new int[9];
     private final Map<Player, Sign> players = new HashMap<>();
+    private final StatisticsManager statisticsManager;
+    private final TicTacToe ticTacToe;
     private Player currentPlayer;
     private Player otherPlayer;
-    public Board(Player player1, Player player2) {
+    private boolean end = false;
+    private boolean tie = false;
+
+    public Board(Player player1, Player player2, StatisticsManager statisticsManager, TicTacToe ticTacToe) {
+        this.statisticsManager = statisticsManager;
+        this.ticTacToe = ticTacToe;
         players.put(player1, Sign.X);
         players.put(player2, Sign.O);
         currentPlayer = player1;
         otherPlayer = player2;
-        currentPlayer.getEventHandler().registerListener(this);
+        currentPlayer.getInputEventHandler().registerListener(this);
+        currentPlayer.getEventHandler().registerListeners(this);
+        otherPlayer.getEventHandler().registerListeners(this);
         renderAll();
     }
 
@@ -69,8 +81,8 @@ public class Board implements InputListener {
     }
 
     private boolean isDraw() {
-        for(int value:board){
-            if(value == 0) {
+        for (int value : board) {
+            if (value == 0) {
                 return false;
             }
         }
@@ -84,12 +96,20 @@ public class Board implements InputListener {
 
     public void render(Player player) {
         StringBuilder sb = new StringBuilder();
+        if (end) {
+            sb.append(StringUtils.centerText(player.getLocale().getString("game_ended"), 17));
+        } else if (currentPlayer == player) {
+            sb.append(StringUtils.centerText(player.getLocale().getString("your_turn"), 17));
+        } else {
+            sb.append(StringUtils.centerText(player.getLocale().getString("player_turn").replace("%p", currentPlayer.getName()), 17));
+        }
+        sb.append("\n\r");
         for (int i = 0; i < 3; i++) {
             sb.append("     │     │     \n\r");
             for (int j = 0; j < 3; j++) {
                 sb.append("  ");
                 if (board[i * 3 + j] == 0) {
-                    if (player == currentPlayer) {
+                    if (player == currentPlayer && !end) {
                         sb.append(i * 3 + j + 1);
                     } else {
                         sb.append(" ");
@@ -110,11 +130,27 @@ public class Board implements InputListener {
                 sb.append("─────┼─────┼─────\n\r");
             }
         }
+        String message = null;
+        if (end) {
+            if (tie) {
+                message = player.getLocale().getString("tic_tac_toe_tie_message");
+            } else {
+                if (otherPlayer == player) {
+                    message = player.getLocale().getString("tic_tac_toe_win_message");
+                } else {
+                    message = player.getLocale().getString("tic_tac_toe_lose_message");
+                }
+            }
+        }
+        if (message != null) {
+            sb.append(StringUtils.centerText(message, 17));
+        }
         try {
             player.getOutputStream().write(EscapeCodeUtils.CLEAR_SCREEN.getBytes());
-            player.getOutputStream().write(sb.toString().getBytes(StandardCharsets.UTF_8));
+            player.getOutputStream().write(StringUtils.centerInTerminal(StringUtils.fillOutSpaces(sb.toString()), player.getWindowSize()).getBytes(StandardCharsets.UTF_8));
             player.getOutputStream().flush();
-        } catch (IOException ignored) {}
+        } catch (IOException ignored) {
+        }
     }
 
     private void renderAll() {
@@ -125,6 +161,7 @@ public class Board implements InputListener {
     @Override
     public void onInput(int input) {
         if (input == 3) {
+            statisticsManager.registerWin(otherPlayer, currentPlayer, ticTacToe);
             endGame();
             return;
         }
@@ -136,26 +173,16 @@ public class Board implements InputListener {
         }
         this.setField(this.getCurrentPlayer(), input - 49);
 
-        if (this.checkWin(input - 49)||this.isDraw()) {
-            getCurrentPlayer().getEventHandler().unregisterListener(this);
+        if (this.checkWin(input - 49) || this.isDraw()) {
+            end = true;
+            renderAll();
             if (isDraw()) {
-                try {
-                    getCurrentPlayer().getOutputStream().write(StringUtils.centerText("Its a tie", 17).getBytes(StandardCharsets.UTF_8));
-                    getCurrentPlayer().getOutputStream().flush();
-                    getOtherPlayer().getOutputStream().write(StringUtils.centerText("Its a tie", 17).getBytes(StandardCharsets.UTF_8));
-                    getOtherPlayer().getOutputStream().flush();
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
+                statisticsManager.registerDraw(getCurrentPlayer(), getOtherPlayer(), ticTacToe);
+                tie = true;
+                renderAll();
             } else {
-                try {
-                    getCurrentPlayer().getOutputStream().write(StringUtils.centerText("You won!", 17).getBytes(StandardCharsets.UTF_8));
-                    getCurrentPlayer().getOutputStream().flush();
-                    getOtherPlayer().getOutputStream().write(StringUtils.centerText("You lost!", 17).getBytes(StandardCharsets.UTF_8));
-                    getOtherPlayer().getOutputStream().flush();
-                } catch (IOException e) {
-                    throw new RuntimeException(e);
-                }
+                statisticsManager.registerWin(getOtherPlayer(), getCurrentPlayer(), ticTacToe);
+                renderAll();
             }
             new Thread(() -> {
                 try {
@@ -167,16 +194,24 @@ public class Board implements InputListener {
             }).start();
             return;
         }
-        this.getCurrentPlayer().getEventHandler().registerListener(this);
-        this.getOtherPlayer().getEventHandler().unregisterListener(this);
+        this.getCurrentPlayer().getInputEventHandler().registerListener(this);
+        this.getOtherPlayer().getInputEventHandler().unregisterListener(this);
         renderAll();
     }
 
     private void endGame() {
+        getCurrentPlayer().getInputEventHandler().unregisterListener(this);
+        getOtherPlayer().getEventHandler().unregisterListeners(this);
+        getCurrentPlayer().getEventHandler().unregisterListeners(this);
         Lobby lobby = getCurrentPlayer().getLobby();
         lobby.getEndCallback().run();
         if (getOtherPlayer().getLobby() != lobby) {
             getOtherPlayer().getLobby().getEndCallback().run();
         }
+    }
+
+    @EventListener
+    public void onWindowChange(WindowChangeEvent event) {
+        renderAll();
     }
 }

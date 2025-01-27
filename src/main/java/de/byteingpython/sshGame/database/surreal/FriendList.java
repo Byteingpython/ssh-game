@@ -1,12 +1,16 @@
 package de.byteingpython.sshGame.database.surreal;
 
+import java.util.ArrayList;
+import java.util.List;
+
 public class FriendList {
-    Friends friends;
-    public FriendList(){
-        friends = new Friends();
+    List<String> friends;
+
+    public FriendList() {
+        friends = new ArrayList<>();
     }
 
-    public Friends getFriends() {
+    public List<String> getFriends() {
         return friends;
     }
 }

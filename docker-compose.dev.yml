@@ -1,0 +1,18 @@
+name: "SSH-Game"
+services:
+  surrealdb:
+    pull_policy: always
+    user: "root"
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./data:/data
+    environment:
+      SURREAL_USER: "root"
+      SURREAL_PASS: "root"
+    image: surrealdb/surrealdb:latest
+    command: start file:/data/surrealdb.db
+  keydb:
+    ports:
+      - "6379:6379"
+    image: eqalpha/keydb
